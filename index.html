@@ -302,7 +302,14 @@
             if (data) {
                 db.players = data.players || [];
                 db.queue = data.queue || [];
-                db.courts = data.courts || [];
+                
+                // ★ Firebaseの「空配列が消滅する」仕様への対策
+                let fetchedCourts = data.courts || [];
+                fetchedCourts.forEach(c => {
+                    if (!c.p) c.p = []; // 誰もいないコート(空配列)を明示的に復元
+                });
+                db.courts = fetchedCourts;
+                
                 db.maxCourts = data.maxCourts || 6;
                 db.dailyCounter = data.dailyCounter || 1;
                 
@@ -339,7 +346,10 @@
                     let parsed = JSON.parse(saved);
                     if (parsed.players) db.players = parsed.players;
                     if (parsed.queue) db.queue = parsed.queue;
-                    if (parsed.courts) db.courts = parsed.courts;
+                    if (parsed.courts) {
+                        parsed.courts.forEach(c => { if(!c.p) c.p = []; }); // ローカル読込時も復元
+                        db.courts = parsed.courts;
+                    }
                     if (parsed.maxCourts) db.maxCourts = parsed.maxCourts;
                     if (parsed.dailyCounter) db.dailyCounter = parsed.dailyCounter;
                     adjustCourts();
@@ -366,6 +376,8 @@
             if (!isAdmin) return;
             if (stateHistory.length > 0) {
                 db = JSON.parse(stateHistory.pop());
+                // 戻る時も空配列を復元
+                db.courts.forEach(c => { if(!c.p) c.p = []; });
                 manualSelectedIds = [];
                 updateUndoButton();
                 saveToCloud(); // 履歴をクラウドに送信して全員の画面を戻す
@@ -385,7 +397,8 @@
             let n = db.maxCourts + delta;
             if (delta < 0) {
                 let lastCourt = db.courts[db.courts.length - 1];
-                if (lastCourt && lastCourt.p.length > 0) return; 
+                // エラー防止: 最後のコートに人がいる場合は減らせない
+                if (lastCourt && lastCourt.p && lastCourt.p.length > 0) return; 
             }
             if (n >= 1 && n <= 12) {
                 saveStateToHistory();
@@ -485,7 +498,7 @@
             if (!isAdmin) return;
             saveStateToHistory();
             let court = db.courts[idx];
-            let leaving = [...court.p].sort(() => Math.random() - 0.5);
+            let leaving = [...(court.p || [])].sort(() => Math.random() - 0.5);
             leaving.forEach(id => {
                 let player = db.players.find(p => p.id === id);
                 if (player) { player.status = 'waiting'; db.queue.push(id); }
@@ -510,7 +523,7 @@
 
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
-            let emptyCourts = db.courts.filter(c => c.p.length === 0);
+            let emptyCourts = db.courts.filter(c => !c.p || c.p.length === 0);
             if (emptyCourts.length === 0) return alert("空きコートがありません。");
             let courtsToFill = Math.min(emptyCourts.length, Math.floor(db.queue.length / 4));
             if (courtsToFill === 0) return alert("待機人数が足りません。");
@@ -537,12 +550,12 @@
                 if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
                 else alert("優先できるのは1回に4名までです。");
             }
-            render(); // これはローカルの選択状態だけなのでクラウドには保存しない
+            render(); // ローカルの選択状態だけなのでクラウドには保存しない
         }
 
         function fillCourtWithSelected() {
             if (!isAdmin || manualSelectedIds.length !== 4) return;
-            let emptyCourt = db.courts.find(c => c.p.length === 0);
+            let emptyCourt = db.courts.find(c => !c.p || c.p.length === 0);
             if (!emptyCourt) return alert("空きコートがありません。先に試合を終了してください。");
             
             saveStateToHistory();
@@ -564,7 +577,7 @@
 
         function reshuffleSelectedCourts() {
             if (!isAdmin) return;
-            let selected = db.courts.filter(c => c.selected && c.p.length === 4);
+            let selected = db.courts.filter(c => c.selected && c.p && c.p.length === 4);
             if (selected.length === 0) return alert("再抽選したいコートの「再抽選」にチェックを入れてください。");
 
             saveStateToHistory();
@@ -653,7 +666,7 @@
             // コートUI
             let courtsHtml = "";
             db.courts.forEach((c, idx) => {
-                if (c.p.length === 4) {
+                if (c.p && c.p.length === 4) {
                     let p1 = db.players.find(pl => pl.id === c.p[0]);
                     let p2 = db.players.find(pl => pl.id === c.p[1]);
                     let p3 = db.players.find(pl => pl.id === c.p[2]);
