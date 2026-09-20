@@ -85,15 +85,15 @@
         // ==========================================
         // 1. Firebaseの接続設定（★ここを書き換えてください）
         // ==========================================
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com", // 必須
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+const firebaseConfig = {
+  apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
+  authDomain: "badmin-app-29c62.firebaseapp.com",
+  databaseURL: "https://badmin-app-29c62-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "badmin-app-29c62",
+  storageBucket: "badmin-app-29c62.firebasestorage.app",
+  messagingSenderId: "184592125831",
+  appId: "1:184592125831:web:5c4ca09bdd7de86d54cd22"
+};
         // Firebase初期化
         firebase.initializeApp(firebaseConfig);
         const dbRef = firebase.database().ref('badminData');
