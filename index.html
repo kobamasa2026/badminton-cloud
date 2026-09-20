@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード V14(クラウド版)</title>
+    <title>バドミントン組み合わせボード V15(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -82,7 +82,6 @@
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--status-next); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
         .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
-        .manual-fill-area { background: #FEF3C7; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #FCD34D; text-align: center;}
 
         /* コート */
         .courts-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
@@ -124,7 +123,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V14 <span class="admin-badge">監督モード</span></h1>
+        <h1 class="header-title">ボード V15 <span class="admin-badge">監督モード</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -137,10 +136,6 @@
                     <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先選択</span>
                 </div>
                 
-                <div id="manualFillArea" class="manual-fill-area admin-only" style="display:none;">
-                    <button id="btnManualFill" class="btn-primary" onclick="fillCourtWithSelected()" disabled>選択中... (0/4名)</button>
-                </div>
-
                 <div class="next-queue-container" id="nextQueueUI"></div>
             </div>
 
@@ -291,7 +286,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1 };
-        const STORAGE_KEY = 'badmin_v14_data';
+        const STORAGE_KEY = 'badmin_v15_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -507,8 +502,45 @@
             saveToCloud();
         }
 
+        // 待機列からの選択
+        function toggleManualSelect(id) {
+            if (!isAdmin) return;
+            if (manualSelectedIds.includes(id)) {
+                manualSelectedIds = manualSelectedIds.filter(x => x !== id);
+            } else {
+                if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
+                else alert("優先できるのは1回に4名までです。");
+            }
+            render(); // ローカルの選択状態だけなのでクラウドには保存しない
+        }
+
+        // 「▶ 次の4人を入れる」ボタンの統合処理
         function fillCourt(idx) {
             if (!isAdmin) return;
+            
+            // 手動で選択されている人がいる場合
+            if (manualSelectedIds.length > 0) {
+                if (manualSelectedIds.length !== 4) {
+                    return alert("優先して入れるには、4名ぴったり選択してください。\n（現在 " + manualSelectedIds.length + "名選択中）");
+                }
+                saveStateToHistory();
+                let court = db.courts[idx];
+                
+                // 選択された4人を列から抜く
+                db.queue = db.queue.filter(id => !manualSelectedIds.includes(id));
+                
+                manualSelectedIds.forEach(id => {
+                    let p = db.players.find(pl => pl.id === id);
+                    p.status = 'playing'; p.playCount++; court.p.push(id);
+                });
+                
+                court.p.sort(() => Math.random() - 0.5); // チームをシャッフル
+                manualSelectedIds = []; // 選択解除
+                saveToCloud();
+                return;
+            }
+
+            // 通常の補充処理（誰も選択されていない場合）
             if (db.queue.length < 4) return alert("待機人数が4名未満です。");
             saveStateToHistory();
             let court = db.courts[idx];
@@ -523,6 +555,10 @@
 
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
+            if (manualSelectedIds.length > 0) {
+                return alert("優先選択中のメンバーがいます。\n個別のコートに「▶ 次の4人を入れる」で入れるか、選択を一度解除してから一斉補充してください。");
+            }
+            
             let emptyCourts = db.courts.filter(c => !c.p || c.p.length === 0);
             if (emptyCourts.length === 0) return alert("空きコートがありません。");
             let courtsToFill = Math.min(emptyCourts.length, Math.floor(db.queue.length / 4));
@@ -539,33 +575,6 @@
                     p.status = 'playing'; p.playCount++; court.p.push(id);
                 });
             }
-            saveToCloud();
-        }
-
-        function toggleManualSelect(id) {
-            if (!isAdmin) return;
-            if (manualSelectedIds.includes(id)) {
-                manualSelectedIds = manualSelectedIds.filter(x => x !== id);
-            } else {
-                if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
-                else alert("優先できるのは1回に4名までです。");
-            }
-            render(); // ローカルの選択状態だけなのでクラウドには保存しない
-        }
-
-        function fillCourtWithSelected() {
-            if (!isAdmin || manualSelectedIds.length !== 4) return;
-            let emptyCourt = db.courts.find(c => !c.p || c.p.length === 0);
-            if (!emptyCourt) return alert("空きコートがありません。先に試合を終了してください。");
-            
-            saveStateToHistory();
-            db.queue = db.queue.filter(id => !manualSelectedIds.includes(id));
-            manualSelectedIds.forEach(id => {
-                let p = db.players.find(pl => pl.id === id);
-                p.status = 'playing'; p.playCount++; emptyCourt.p.push(id);
-            });
-            emptyCourt.p.sort(() => Math.random() - 0.5);
-            manualSelectedIds = [];
             saveToCloud();
         }
 
@@ -647,21 +656,6 @@
                 });
             }
             document.getElementById('nextQueueUI').innerHTML = nextHtml;
-
-            if (isAdmin) {
-                let manualBtnArea = document.getElementById('manualFillArea');
-                let btnManualFill = document.getElementById('btnManualFill');
-                if (manualSelectedIds.length > 0) {
-                    manualBtnArea.style.display = 'block';
-                    if (manualSelectedIds.length === 4) {
-                        btnManualFill.disabled = false; btnManualFill.innerText = "👑 選択した4人を空きコートへ"; btnManualFill.style.background = "#F59E0B";
-                    } else {
-                        btnManualFill.disabled = true; btnManualFill.innerText = `選択中... (${manualSelectedIds.length}/4名)`; btnManualFill.style.background = "#9CA3AF";
-                    }
-                } else {
-                    manualBtnArea.style.display = 'none';
-                }
-            }
 
             // コートUI
             let courtsHtml = "";
