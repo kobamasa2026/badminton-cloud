@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード V16(クラウド版)</title>
+    <title>バドミントン組み合わせボード V17(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -13,7 +13,7 @@
         :root {
             --primary: #4F46E5; --primary-dark: #4338CA;
             --bg-base: #F3F4F6; --bg-surface: #FFFFFF;
-            --text-main: #111827; --text-sub: #6B7280; --border: #E5E7EB;
+            --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
             --status-waiting: #F59E0B; --status-next: #8B5CF6; 
             --status-playing: #10B981; --status-inactive: #9CA3AF;
             --nav-height: 65px; --header-height: 56px;
@@ -32,6 +32,10 @@
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
         .admin-badge { background: #DC2626; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-left: 10px; display: none; }
+
+        /* 女性メンバーの赤字表示 */
+        .gender-F { color: #E11D48; }
+        .gender-M { color: inherit; }
 
         #loadingOverlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-surface);
@@ -70,7 +74,7 @@
         .btn-primary { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.1rem; width: 100%; cursor: pointer; }
         .btn-secondary { background: #E5E7EB; color: var(--text-main); border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-danger { background: #FEE2E2; color: #DC2626; border: none; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 1rem; width: 100%; cursor: pointer; }
-        .input-text { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--bg-base); outline: none; }
+        .input-text { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--bg-surface); outline: none; }
         
         /* NEXT 待機列 */
         .next-queue-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x mandatory; }
@@ -79,20 +83,28 @@
             justify-content: center; align-items: center; background: var(--bg-base); border: 2px solid var(--border);
             color: var(--text-main); font-weight: 900; scroll-snap-align: start; cursor: pointer; transition: all 0.2s;
         }
-        .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--status-next); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
+        .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--text-main); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
         .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
         .manual-fill-area { background: #FEF3C7; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #FCD34D; text-align: center;}
 
-        /* コート */
+        /* コート (区切り強調) */
         .courts-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
         @media(min-width: 768px) { .courts-grid { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); } }
-        .court-card { border: 2px solid transparent; display: flex; flex-direction: column; padding: 20px; }
+        
+        .court-card { 
+            background: #FFFFFF; border: 3px solid #D1D5DB; /* より濃い枠と背景 */
+            border-radius: 16px; padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
+            display: flex; flex-direction: column; transition: all 0.2s;
+        }
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
         .court-title { font-weight: 900; font-size: 1.6rem; color: var(--text-main); letter-spacing: 1px;}
         
-        .team-box { background: var(--bg-base); border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; }
-        .team-box.playing { background: #D1FAE5; color: #022C22; border: 4px solid var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+        /* チーム選択時のデザイン */
+        .team-box { background: var(--bg-base); border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;}
+        .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+        .team-box.selected { border-color: #F59E0B; background: #FEF3C7; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.02); }
+        
         .player-name { font-weight: 900; font-size: clamp(1.4rem, 4.5vw + 0.5rem, 2.2rem); margin: 6px 0; letter-spacing: 1px; line-height: 1.15; word-break: keep-all;}
         .vs-badge { background: var(--text-main); color: white; font-size: 1.1rem; font-weight: 900; padding: 8px 16px; border-radius: 16px; margin: 0 12px; }
         .match-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-grow: 1;}
@@ -102,7 +114,7 @@
         .list-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
         .list-row:last-child { border-bottom: none; }
         .member-info { display: flex; align-items: center; gap: 12px; }
-        .status-dot { width: 14px; height: 14px; border-radius: 50%; }
+        .status-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
         .dot-waiting { background: var(--status-waiting); }
         .dot-playing { background: var(--status-playing); }
         .dot-inactive { background: var(--status-inactive); }
@@ -117,14 +129,13 @@
 </head>
 <body>
 
-    <!-- 通信待機画面 -->
     <div id="loadingOverlay">
         <span style="font-size:3rem;">🏸</span>
         <span id="loadingMsg">クラウドへ接続中...</span>
     </div>
 
     <header>
-        <h1 class="header-title">ボード V16 <span class="admin-badge">監督モード</span></h1>
+        <h1 class="header-title">ボード V17 <span class="admin-badge">監督モード</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -150,34 +161,56 @@
                 <button class="btn-primary" style="background:#6366F1;" onclick="reshuffleSelectedCourts()">🔁 選択再抽選</button>
             </div>
 
-            <div class="section-title">コート状況 (<span id="courtCountTxt">6</span>面)</div>
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
-        <!-- 2. メンバービュー -->
+        <!-- 2. メンバービュー (管理者のみ) -->
         <div id="view-roster" class="view admin-only">
             <div class="card">
                 <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規メンバー登録</h3>
                 <div style="display:flex; gap:8px;">
-                    <input type="text" id="newMemberName" class="input-text" maxlength="6" placeholder="ニックネーム (6文字以内)">
+                    <input type="text" id="newMemberName" class="input-text" maxlength="6" placeholder="ニックネーム" style="flex:2;">
+                    <select id="newMemberGender" class="input-text" style="flex:1; padding:0 8px;">
+                        <option value="M">男性</option>
+                        <option value="F">女性</option>
+                    </select>
                     <button class="btn-primary" style="width:auto; padding:0 24px;" onclick="addMember()">追加</button>
                 </div>
             </div>
 
             <div class="card">
                 <div class="section-title">参加中メンバー (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
+                <!-- 凡例を明確に表示 -->
+                <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-waiting);"></div>待機</span>
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-next);box-shadow:0 0 4px var(--status-next);"></div>NEXT</span>
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中</span>
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-inactive);"></div>休憩</span>
+                </div>
                 <div id="presentList"></div>
                 <div style="text-align:center; padding:16px; color:var(--text-sub); display:none;" id="emptyPresent">参加中はいません</div>
             </div>
 
             <div class="card">
-                <div class="section-title">名簿・休憩エリア</div>
-                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップして待機列(参加中)へ移動</p>
+                <div class="section-title">名簿・未受付エリア</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップして待機列へ移動(番号付与)</p>
                 <div id="inactiveList"></div>
             </div>
         </div>
 
-        <!-- 3. 設定ビュー -->
+        <!-- 3. 履歴ビュー (管理者のみ) -->
+        <div id="view-history" class="view admin-only">
+            <div class="card">
+                <div class="section-title">📅 参加履歴と回数修正</div>
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <select id="historyDateSelect" class="input-text" onchange="renderHistoryDetail()"></select>
+                    <button class="btn-danger" style="width:auto; padding:0 16px;" onclick="deleteHistory()">削除</button>
+                </div>
+                <div id="historyDetailArea"></div>
+            </div>
+        </div>
+
+        <!-- 4. 設定ビュー (管理者のみ) -->
         <div id="view-settings" class="view admin-only">
             <div class="card">
                 <div class="section-title">コート設定</div>
@@ -199,7 +232,7 @@
                     <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importRoster(event)">
                 </div>
                 <hr style="border:none; border-top:2px solid var(--border); margin:24px 0;">
-                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:16px;" onclick="startNewDay()">🌅 練習を始める (本日リセット)</button>
+                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:16px;" onclick="startNewDay()">🌅 練習を始める (本日リセット/履歴保存)</button>
                 <button class="btn-danger" onclick="resetAllData()">⚠️ アプリ初期化 (名簿も削除)</button>
             </div>
         </div>
@@ -212,6 +245,9 @@
         </a>
         <a href="?view=roster" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
             <span class="nav-icon">👥</span><span>メンバー</span>
+        </a>
+        <a href="?view=history" class="nav-item admin-only" id="nav-history" onclick="routeTo(event, 'history')">
+            <span class="nav-icon">📅</span><span>履歴</span>
         </a>
         <a href="?view=settings" class="nav-item admin-only" id="nav-settings" onclick="routeTo(event, 'settings')">
             <span class="nav-icon">⚙️</span><span>設定</span>
@@ -230,7 +266,7 @@
 
     <script>
         // ==========================================
-        // 1. Firebase接続設定
+        // 1. Firebase接続設定 (ユーザー設定済み)
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
@@ -261,7 +297,7 @@
         // ==========================================
         function initRouter() {
             let view = urlParams.get('view') || 'matches';
-            if (!isAdmin) view = 'matches'; // 閲覧者は強制的に試合画面のみ
+            if (!isAdmin) view = 'matches'; 
             activateView(view);
             window.addEventListener('popstate', (e) => {
                 let stateView = e.state ? e.state.view : (new URLSearchParams(window.location.search).get('view') || 'matches');
@@ -290,28 +326,25 @@
         // ==========================================
         // 4. データ構造と通信
         // ==========================================
-        let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1 };
-        const STORAGE_KEY = 'badmin_v16_data';
+        let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
+        const STORAGE_KEY = 'badmin_v17_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
 
-        // Firebaseからデータを受信したとき(リアルタイム)
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 db.players = data.players || [];
                 db.queue = data.queue || [];
                 
-                // ★ Firebaseの空配列消滅対策
                 let fetchedCourts = data.courts || [];
-                fetchedCourts.forEach(c => {
-                    if (!c.p) c.p = []; 
-                });
+                fetchedCourts.forEach(c => { if (!c.p) c.p = []; });
                 db.courts = fetchedCourts;
                 
                 db.maxCourts = data.maxCourts || 6;
                 db.dailyCounter = data.dailyCounter || 1;
+                db.history = data.history || {};
                 
                 if (isInitialLoad) {
                     document.getElementById('loadingOverlay').style.display = 'none';
@@ -336,7 +369,7 @@
             initRouter();
             let saved = localStorage.getItem(STORAGE_KEY);
             if (saved && !isInitialLoad) {
-                // すでにクラウドデータがあれば上書きしない
+                // クラウド優先
             } else if (saved && isInitialLoad && isAdmin) {
                 try {
                     let parsed = JSON.parse(saved);
@@ -348,6 +381,7 @@
                     }
                     if (parsed.maxCourts) db.maxCourts = parsed.maxCourts;
                     if (parsed.dailyCounter) db.dailyCounter = parsed.dailyCounter;
+                    if (parsed.history) db.history = parsed.history;
                     adjustCourts();
                 } catch(e) {}
             }
@@ -356,7 +390,7 @@
 
         function saveToCloud() {
             if (isAdmin) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); // ローカルにもバックアップ
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
                 dbRef.set(db);
             }
         }
@@ -381,7 +415,13 @@
         function updateUndoButton() { 
             if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0; 
         }
-        function formatName(p) { return p.dailyNum ? `${p.dailyNum}: ${p.name}` : p.name; }
+        
+        // 性別ごとの色付けを行うフォーマット関数
+        function formatName(p) { 
+            let nameStr = p.dailyNum ? `${p.dailyNum}: ${p.name}` : p.name;
+            let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
+            return `<span class="${colorClass}">${nameStr}</span>`;
+        }
 
         // ==========================================
         // 5. アクション関数群
@@ -408,22 +448,38 @@
 
         function startNewDay() {
             if (!isAdmin) return;
-            if (confirm("名簿は残したまま、本日のコート・受付番号・プレイ回数をすべてリセットしますか？")) {
-                saveStateToHistory();
-                db.dailyCounter = 1;
-                db.players.forEach(p => { p.status = 'inactive'; p.playCount = 0; p.dailyNum = null; });
-                db.queue = [];
-                db.courts.forEach(c => { c.p = []; c.selected = false; });
-                manualSelectedIds = [];
-                saveToCloud();
-                routeTo(null, 'roster');
+            if (confirm("名簿は残したまま、本日の状態をリセットし、参加履歴を保存しますか？")) {
+                let dateStr = new Date().toISOString().split('T')[0];
+                let promptDate = prompt("保存する日付を入力してください（不要な場合はそのままOKまたはキャンセル）", dateStr);
+                
+                if (promptDate !== null) { // キャンセル以外
+                    if (promptDate.trim() !== "") {
+                        if (!db.history) db.history = {};
+                        let records = {};
+                        db.players.forEach(p => {
+                            if (p.dailyNum) { // 受付した人だけ保存
+                                records[p.id] = { name: p.name, playCount: p.playCount, gender: p.gender, dailyNum: p.dailyNum };
+                            }
+                        });
+                        db.history[promptDate] = records;
+                    }
+                    
+                    saveStateToHistory();
+                    db.dailyCounter = 1;
+                    db.players.forEach(p => { p.status = 'inactive'; p.playCount = 0; p.dailyNum = null; });
+                    db.queue = [];
+                    db.courts.forEach(c => { c.p = []; c.selected = false; });
+                    manualSelectedIds = [];
+                    saveToCloud();
+                    routeTo(null, 'roster');
+                }
             }
         }
         
         function resetAllData() {
             if (!isAdmin) return;
-            if (confirm("【警告】名簿を含むすべてのデータを完全に削除します。よろしいですか？")) {
-                db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1 };
+            if (confirm("【警告】名簿や履歴を含むすべてのデータを完全に削除します。よろしいですか？")) {
+                db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
                 stateHistory = [];
                 manualSelectedIds = [];
                 adjustCourts();
@@ -434,12 +490,13 @@
         function addMember() {
             if (!isAdmin) return;
             let input = document.getElementById('newMemberName');
+            let gender = document.getElementById('newMemberGender').value;
             let name = input.value.trim();
             if (!name) return;
             if (db.players.some(p => p.name === name)) return alert("既に登録されています。");
             
             saveStateToHistory();
-            db.players.push({ id: Date.now(), name: name, status: 'inactive', playCount: 0, dailyNum: null });
+            db.players.push({ id: Date.now(), name: name, gender: gender, status: 'inactive', playCount: 0, dailyNum: null });
             input.value = "";
             saveToCloud();
         }
@@ -464,7 +521,7 @@
             if (!player) return;
             if (player.status === 'playing') return alert("現在試合中です。先にコートを空けてください。");
             currentModalPlayerId = id;
-            document.getElementById('modalPlayerName').innerText = formatName(player) + " さん";
+            document.getElementById('modalPlayerName').innerHTML = formatName(player) + " さん";
             document.getElementById('statusModal').style.display = 'flex';
         }
 
@@ -500,7 +557,6 @@
             saveToCloud();
         }
 
-        // 待機列からの選択
         function toggleManualSelect(id) {
             if (!isAdmin) return;
             if (manualSelectedIds.includes(id)) {
@@ -512,30 +568,27 @@
             render(); 
         }
 
-        // 個別補充 (マニュアル選択状態であればそれを優先)
         function fillCourt(idx) {
             if (!isAdmin) return;
             
+            // チーム枠（チームボックス）をタップして優先投入する場合
             if (manualSelectedIds.length > 0) {
                 if (manualSelectedIds.length !== 4) {
                     return alert("優先して入れるには、4名ぴったり選択してください。\n（現在 " + manualSelectedIds.length + "名選択中）");
                 }
                 saveStateToHistory();
                 let court = db.courts[idx];
-                
                 db.queue = db.queue.filter(id => !manualSelectedIds.includes(id));
                 manualSelectedIds.forEach(id => {
                     let p = db.players.find(pl => pl.id === id);
                     p.status = 'playing'; p.playCount++; court.p.push(id);
                 });
-                
                 court.p.sort(() => Math.random() - 0.5);
                 manualSelectedIds = [];
                 saveToCloud();
                 return;
             }
 
-            // 通常補充
             if (db.queue.length < 4) return alert("待機人数が4名未満です。");
             saveStateToHistory();
             let court = db.courts[idx];
@@ -548,11 +601,10 @@
             saveToCloud();
         }
 
-        // 一斉補充（シャッフル機能）
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
             if (manualSelectedIds.length > 0) {
-                return alert("優先選択中のメンバーがいます。\n個別のコートに「▶ 次の4人を入れる」で入れるか、選択を一度解除してから一斉補充してください。");
+                return alert("優先選択中のメンバーがいます。\n個別のコートに入れるか、選択を一度解除してから一斉補充してください。");
             }
             
             let emptyCourts = db.courts.filter(c => !c.p || c.p.length === 0);
@@ -561,11 +613,7 @@
             if (courtsToFill === 0) return alert("待機人数が足りません。");
 
             saveStateToHistory();
-            
-            // ★ マンネリ防止：待機している全員（キュー）を完全にシャッフルする
             db.queue.sort(() => Math.random() - 0.5);
-            
-            // シャッフルされた状態の先頭から必要な人数を取り出す
             let playersToAssign = db.queue.splice(0, courtsToFill * 4);
             
             for (let i = 0; i < courtsToFill; i++) {
@@ -579,6 +627,7 @@
             saveToCloud();
         }
 
+        // 四角いチームの枠をタップした時の選択トグル
         function toggleCheck(idx, checked) { 
             if(!isAdmin) return; 
             db.courts[idx].selected = checked; 
@@ -588,7 +637,7 @@
         function reshuffleSelectedCourts() {
             if (!isAdmin) return;
             let selected = db.courts.filter(c => c.selected && c.p && c.p.length === 4);
-            if (selected.length === 0) return alert("再抽選したいコートの「再抽選」にチェックを入れてください。");
+            if (selected.length === 0) return alert("再抽選したいコートの「チーム枠（色のついた箱）」をタップして選択状態にしてください。");
 
             saveStateToHistory();
             let targetPlayers = [];
@@ -598,43 +647,106 @@
             saveToCloud();
         }
 
+        // 履歴管理の処理
+        function renderHistoryOptions() {
+            let select = document.getElementById('historyDateSelect');
+            if (!select) return;
+            if (!db.history || Object.keys(db.history).length === 0) {
+                select.innerHTML = '<option value="">履歴なし</option>';
+                document.getElementById('historyDetailArea').innerHTML = '<div style="color:var(--text-sub); text-align:center;">保存された履歴はありません</div>';
+                return;
+            }
+            let dates = Object.keys(db.history).sort().reverse();
+            let currentVal = select.value;
+            select.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
+            if (dates.includes(currentVal)) select.value = currentVal;
+            renderHistoryDetail();
+        }
+
+        function renderHistoryDetail() {
+            let date = document.getElementById('historyDateSelect').value;
+            let area = document.getElementById('historyDetailArea');
+            if (!date || !db.history[date]) { area.innerHTML = ''; return; }
+            
+            let records = db.history[date];
+            let arr = Object.keys(records).map(id => ({id: id, ...records[id]}));
+            arr.sort((a,b) => (a.dailyNum || 0) - (b.dailyNum || 0)); // 番号順
+            
+            let html = '';
+            arr.forEach(r => {
+                html += `
+                <div class="list-row">
+                    <div class="member-name">${formatName(r)}</div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', -1)">-</button>
+                        <span style="font-size:1.4rem; font-weight:900; width:30px; text-align:center;">${r.playCount}</span>
+                        <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', 1)">+</button>
+                    </div>
+                </div>`;
+            });
+            area.innerHTML = html;
+        }
+
+        function updateHistoryPlayCount(date, playerId, delta) {
+            if(!db.history[date] || !db.history[date][playerId]) return;
+            db.history[date][playerId].playCount += delta;
+            if(db.history[date][playerId].playCount < 0) db.history[date][playerId].playCount = 0;
+            saveToCloud(); 
+            // 描画は on('value') で呼ばれる render 内の renderHistoryOptions で行われる
+        }
+
+        function deleteHistory() {
+            let date = document.getElementById('historyDateSelect').value;
+            if (!date) return;
+            if (confirm(`${date} の履歴を完全に削除しますか？`)) {
+                delete db.history[date];
+                saveToCloud();
+            }
+        }
+
         // ==========================================
         // 6. UIの描画
         // ==========================================
         function render() {
             if (isAdmin) {
-                document.getElementById('courtCountTxt').innerText = db.maxCourts;
                 document.getElementById('settingCourtCount').innerText = db.maxCourts;
 
                 let inactiveHtml = "";
                 let presentHtml = "";
                 let presentCount = 0;
 
-                db.players.forEach(p => {
-                    if (p.status === 'inactive') {
-                        inactiveHtml += `
-                            <div class="list-row" onclick="checkIn(${p.id})">
-                                <div class="member-info"><div class="status-dot dot-inactive"></div><div class="member-name">${formatName(p)}</div></div>
-                                <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ 受付</span></div>
-                            </div>`;
-                    } else {
-                        let isNext = (p.status === 'waiting' && db.queue.indexOf(p.id) < 4 && db.queue.indexOf(p.id) !== -1);
-                        let dotClass = p.status === 'playing' ? 'dot-playing' : (isNext ? 'dot-next' : 'dot-waiting');
-                        let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
-                        
-                        presentHtml += `
-                            <div class="list-row" onclick="openPlayerMenu(${p.id})">
-                                <div class="member-info"><div class="status-dot ${dotClass}"></div><div class="member-name">${formatName(p)}</div></div>
-                                <div class="member-meta"><span>${statusTxt}</span><span>(${p.playCount}回)</span></div>
-                            </div>`;
-                        presentCount++;
-                    }
+                // 参加中メンバーを受付番号順にソートして表示
+                let presentPlayers = db.players.filter(p => p.status !== 'inactive');
+                presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
+
+                presentPlayers.forEach(p => {
+                    let isNext = (p.status === 'waiting' && db.queue.indexOf(p.id) < 4 && db.queue.indexOf(p.id) !== -1);
+                    let dotClass = p.status === 'playing' ? 'dot-playing' : (isNext ? 'dot-next' : 'dot-waiting');
+                    let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
+                    
+                    presentHtml += `
+                        <div class="list-row" onclick="openPlayerMenu(${p.id})">
+                            <div class="member-info"><div class="status-dot ${dotClass}"></div><div class="member-name">${formatName(p)}</div></div>
+                            <div class="member-meta"><span>${statusTxt}</span><span>(${p.playCount}回)</span></div>
+                        </div>`;
+                    presentCount++;
+                });
+
+                // 名簿・未受付エリア
+                db.players.filter(p => p.status === 'inactive').forEach(p => {
+                    inactiveHtml += `
+                        <div class="list-row" onclick="checkIn(${p.id})">
+                            <div class="member-info"><div class="status-dot dot-inactive"></div><div class="member-name">${formatName(p)}</div></div>
+                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ 受付</span></div>
+                        </div>`;
                 });
 
                 document.getElementById('inactiveList').innerHTML = inactiveHtml || '<div style="color:var(--text-sub); text-align:center; padding:16px;">名簿は空です</div>';
                 document.getElementById('presentList').innerHTML = presentHtml;
                 document.getElementById('activeCount').innerText = presentCount;
                 document.getElementById('emptyPresent').style.display = presentCount === 0 ? 'block' : 'none';
+                
+                renderHistoryOptions();
             }
 
             // NEXT待機列全体
@@ -658,7 +770,22 @@
             }
             document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
-            // コートUI
+            if (isAdmin) {
+                let manualBtnArea = document.getElementById('manualFillArea');
+                let btnManualFill = document.getElementById('btnManualFill');
+                if (manualSelectedIds.length > 0) {
+                    manualBtnArea.style.display = 'block';
+                    if (manualSelectedIds.length === 4) {
+                        btnManualFill.disabled = false; btnManualFill.innerText = "👑 選択した4人を空きコートへ"; btnManualFill.style.background = "#F59E0B";
+                    } else {
+                        btnManualFill.disabled = true; btnManualFill.innerText = `選択中... (${manualSelectedIds.length}/4名)`; btnManualFill.style.background = "#9CA3AF";
+                    }
+                } else {
+                    manualBtnArea.style.display = 'none';
+                }
+            }
+
+            // コートUI (区切り強化 ＆ チーム枠のタップ選択)
             let courtsHtml = "";
             db.courts.forEach((c, idx) => {
                 if (c.p && c.p.length === 4) {
@@ -666,26 +793,30 @@
                     let p2 = db.players.find(pl => pl.id === c.p[1]);
                     let p3 = db.players.find(pl => pl.id === c.p[2]);
                     let p4 = db.players.find(pl => pl.id === c.p[3]);
-                    let checked = c.selected ? "checked" : "";
+                    
+                    let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
                     courtsHtml += `
-                        <div class="card court-card" style="${c.selected && isAdmin ? 'border-color:var(--primary); box-shadow: 0 0 0 2px var(--primary);' : ''}">
+                        <div class="court-card">
                             <div class="court-header">
                                 <span class="court-title">コート ${c.id}</span>
-                                <label class="admin-only" style="display:flex; align-items:center; gap:8px; font-size:1rem; color:var(--text-sub); font-weight:900; cursor:pointer;">
-                                    <input type="checkbox" style="transform:scale(1.4);" onchange="toggleCheck(${idx}, this.checked)" ${checked}> 再抽選
-                                </label>
                             </div>
                             <div class="match-row">
-                                <div class="team-box playing"><div class="player-name">${p1 ? formatName(p1) : ""}</div><div class="player-name">${p2 ? formatName(p2) : ""}</div></div>
+                                <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
+                                    <div class="player-name">${p1 ? formatName(p1) : ""}</div>
+                                    <div class="player-name">${p2 ? formatName(p2) : ""}</div>
+                                </div>
                                 <div class="vs-badge">VS</div>
-                                <div class="team-box playing"><div class="player-name">${p3 ? formatName(p3) : ""}</div><div class="player-name">${p4 ? formatName(p4) : ""}</div></div>
+                                <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
+                                    <div class="player-name">${p3 ? formatName(p3) : ""}</div>
+                                    <div class="player-name">${p4 ? formatName(p4) : ""}</div>
+                                </div>
                             </div>
                             <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">試合終了 (空ける)</button>
                         </div>`;
                 } else {
                     courtsHtml += `
-                        <div class="card court-card">
+                        <div class="court-card">
                             <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート ${c.id}</span></div>
                             <div style="text-align:center; padding:32px 0; color:var(--text-sub); font-weight:900; font-size:1.2rem;">待機中 (空き)</div>
                             <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ 次の4人を入れる</button>
@@ -696,11 +827,11 @@
         }
 
         // ==========================
-        // 名簿の読み書き (管理者のみ)
+        // 名簿の読み書き
         // ==========================
         function exportRoster() {
             if(!isAdmin) return;
-            let rosterData = { players: db.players.map(p => ({ id: p.id, name: p.name })) };
+            let rosterData = { players: db.players.map(p => ({ id: p.id, name: p.name, gender: p.gender })) };
             let blob = new Blob([JSON.stringify(rosterData)], { type: "application/json" });
             let file = new File([blob], "roster.json", { type: "application/json" });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -726,7 +857,7 @@
                         let added = 0;
                         imported.players.forEach(imp => {
                             if (!db.players.some(p => p.name === imp.name)) {
-                                db.players.push({ id: imp.id || Date.now()+Math.random(), name: imp.name, status: 'inactive', playCount: 0, dailyNum: null });
+                                db.players.push({ id: imp.id || Date.now()+Math.random(), name: imp.name, gender: imp.gender || 'M', status: 'inactive', playCount: 0, dailyNum: null });
                                 added++;
                             }
                         });
