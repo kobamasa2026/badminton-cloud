@@ -210,7 +210,6 @@
         <a href="?view=matches" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
         </a>
-        <!-- 閲覧者にはこれらのタブ自体が見えない -->
         <a href="?view=roster" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
             <span class="nav-icon">👥</span><span>メンバー</span>
         </a>
@@ -231,17 +230,17 @@
 
     <script>
         // ==========================================
-        // 1. Firebase接続設定 (★必ず書き換えてください)
+        // 1. Firebase接続設定 (ユーザー設定済み)
         // ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
-  authDomain: "badmin-app-29c62.firebaseapp.com",
-  databaseURL: "https://badmin-app-29c62-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "badmin-app-29c62",
-  storageBucket: "badmin-app-29c62.firebasestorage.app",
-  messagingSenderId: "184592125831",
-  appId: "1:184592125831:web:5c4ca09bdd7de86d54cd22"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
+            authDomain: "badmin-app-29c62.firebaseapp.com",
+            databaseURL: "https://badmin-app-29c62-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "badmin-app-29c62",
+            storageBucket: "badmin-app-29c62.firebasestorage.app",
+            messagingSenderId: "184592125831",
+            appId: "1:184592125831:web:5c4ca09bdd7de86d54cd22"
+        };
         firebase.initializeApp(firebaseConfig);
         const dbRef = firebase.database().ref('badminCloudData');
 
@@ -292,6 +291,7 @@ const firebaseConfig = {
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1 };
+        const STORAGE_KEY = 'badmin_v14_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -321,13 +321,37 @@ const firebaseConfig = {
                     isInitialLoad = false;
                     render();
                 } else {
-                    document.getElementById('loadingMsg').innerText = "データがありません。監督の操作をお待ちください。";
+                    document.getElementById('loadingMsg').innerText = "データがありません。\n監督の初期設定をお待ちください。";
                 }
             }
         });
 
+        // アプリ起動時の処理
+        window.onload = function() {
+            initRouter();
+            
+            // ローカルストレージ（バックアップ）の読み込み
+            let saved = localStorage.getItem(STORAGE_KEY);
+            if (saved && !isInitialLoad) {
+                // すでにクラウドデータがあれば上書きしない
+            } else if (saved && isInitialLoad && isAdmin) {
+                try {
+                    let parsed = JSON.parse(saved);
+                    if (parsed.players) db.players = parsed.players;
+                    if (parsed.queue) db.queue = parsed.queue;
+                    if (parsed.courts) db.courts = parsed.courts;
+                    if (parsed.maxCourts) db.maxCourts = parsed.maxCourts;
+                    if (parsed.dailyCounter) db.dailyCounter = parsed.dailyCounter;
+                    adjustCourts();
+                } catch(e) {}
+            }
+            
+            updateUndoButton();
+        };
+
         function saveToCloud() {
             if (isAdmin) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); // ローカルにもバックアップ
                 dbRef.set(db);
             }
         }
@@ -354,7 +378,7 @@ const firebaseConfig = {
         function formatName(p) { return p.dailyNum ? `${p.dailyNum}: ${p.name}` : p.name; }
 
         // ==========================================
-        // 5. アクション関数群 (変更したら saveToCloud)
+        // 5. アクション関数群
         // ==========================================
         function changeMaxCourts(delta) {
             if (!isAdmin) return;
@@ -706,8 +730,6 @@ const firebaseConfig = {
             };
             reader.readAsText(file);
         }
-
-        window.onload = initRouter;
     </script>
 </body>
 </html>
