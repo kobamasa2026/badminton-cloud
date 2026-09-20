@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>バドミントン組み合わせ リアルタイム版</title>
+    <!-- Firebase SDK (通信用の図書館) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        /* ベースのデザイン設定 */
+        :root {
+            --primary: #4F46E5; --bg-base: #F3F4F6; --bg-surface: #FFFFFF;
+            --text-main: #111827; --text-sub: #6B7280; --border: #E5E7EB;
+            --status-waiting: #F59E0B; --status-next: #8B5CF6; --status-playing: #10B981;
+            --header-height: 56px;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg-base); color: var(--text-main); margin: 0; padding: 10px; padding-top: calc(var(--header-height) + 10px); }
+        
+        header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); background: var(--primary); color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 50; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-title { font-size: 1.2rem; font-weight: 900; margin: 0; }
+        .admin-badge { background: #F59E0B; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: none; }
+
+        .card { background: var(--bg-surface); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .section-title { font-size: 1.1rem; font-weight: 900; margin: 0 0 12px 0; border-bottom: 2px solid var(--border); padding-bottom: 8px;}
+        
+        /* 待機列 */
+        .next-queue-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; }
+        .next-slot { flex: 0 0 auto; width: 80px; height: 80px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #F3E8FF; border: 2px solid var(--status-next); color: var(--status-next); font-weight: bold; }
+        
+        /* コート */
+        .courts-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+        @media(min-width: 768px) { .courts-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
+        .court-card { border: 2px solid var(--border); border-radius: 12px; padding: 16px; background: var(--bg-surface); text-align: center; }
+        .match-row { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; }
+        .team-box { background: #D1FAE5; color: #022C22; border: 2px solid var(--status-playing); border-radius: 8px; padding: 12px; flex: 1; font-weight: 900; font-size: 1.4rem; line-height: 1.2; }
+        .vs { font-weight: 900; color: var(--text-sub); margin: 0 12px; }
+
+        /* 閲覧者には見せない要素 */
+        .admin-only { display: none; }
+        
+        /* 管理者用ボタン */
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 8px;}
+        .btn-danger { background: #FEE2E2; color: #DC2626; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 8px;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="header-title">🏸 ボード (リアルタイム)</h1>
+        <span id="adminBadge" class="admin-badge">👑 監督モード</span>
+    </header>
+
+    <main>
+        <div id="loadingMsg" style="text-align:center; padding:40px; color:#6B7280; font-weight:bold;">通信中... (お待ちください)</div>
+
+        <div id="mainContent" style="display:none;">
+            <!-- 管理者専用アクション -->
+            <div class="card admin-only">
+                <div class="section-title">👑 監督コントロールパネル</div>
+                <button class="btn-primary" onclick="alert('ダミー機能：一斉補充しました（テスト）')">⚡ 空きコートを一斉補充</button>
+                <button class="btn-danger" style="margin-top:10px;" onclick="alert('ダミー機能：リセットしました（テスト）')">🌅 本日リセット</button>
+            </div>
+
+            <!-- 全員が見る画面 -->
+            <div class="card">
+                <div class="section-title">⏩ 順番待ち (NEXT)</div>
+                <div class="next-queue-container" id="nextQueueUI">
+                    <!-- Javascriptで描画 -->
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">コート状況</div>
+                <div class="courts-grid" id="courtsArea">
+                    <!-- Javascriptで描画 -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. Firebaseの接続設定（★ここを書き換えてください）
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com", // 必須
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // Firebase初期化
+        firebase.initializeApp(firebaseConfig);
+        const dbRef = firebase.database().ref('badminData');
+
+        // ==========================================
+        // 2. 権限管理 (URLパラメータチェック)
+        // ==========================================
+        // URLが「?admin=secret」かどうかを判定
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdmin = urlParams.get('admin') === 'secret';
+
+        if (isAdmin) {
+            // 管理者の場合は隠しボタンを表示
+            document.getElementById('adminBadge').style.display = 'block';
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        }
+
+        // ==========================================
+        // 3. クラウド通信 (自動同期)
+        // ==========================================
+        let appData = null;
+
+        // データがクラウド上で変更されたら「自動的に」この関数が走る
+        dbRef.on('value', (snapshot) => {
+            document.getElementById('loadingMsg').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            const data = snapshot.val();
+            if (data) {
+                appData = data;
+                renderUI(); // 画面を書き換える
+            } else {
+                // まだクラウドにデータがない場合の初期化
+                if (isAdmin) {
+                    appData = { queue: ["1: ヤマダ", "2: タナカ", "3: スズキ"], courts: [ {id: 1, p: ["4: 佐藤", "5: 高橋", "6: 伊藤", "7: 渡辺"]}, {id: 2, p: []} ] };
+                    dbRef.set(appData);
+                } else {
+                    document.getElementById('loadingMsg').innerText = "データがまだありません。監督の操作をお待ちください。";
+                    document.getElementById('loadingMsg').style.display = 'block';
+                }
+            }
+        });
+
+        // データをクラウドに保存する関数（管理者のみ可能）
+        function saveToCloud() {
+            if (isAdmin && appData) {
+                dbRef.set(appData);
+            }
+        }
+
+        // ==========================================
+        // 4. 画面の描画
+        // ==========================================
+        function renderUI() {
+            // 待機列の描画
+            let nextHtml = "";
+            (appData.queue || []).forEach(name => {
+                nextHtml += `<div class="next-slot"><div>${name}</div></div>`;
+            });
+            document.getElementById('nextQueueUI').innerHTML = nextHtml || "<div style='padding:10px; color:#6B7280;'>待機中はいません</div>";
+
+            // コートの描画
+            let courtsHtml = "";
+            (appData.courts || []).forEach(c => {
+                if (c.p && c.p.length === 4) {
+                    courtsHtml += `
+                        <div class="court-card">
+                            <div style="font-weight:bold; margin-bottom:10px;">コート ${c.id}</div>
+                            <div class="match-row">
+                                <div class="team-box">${c.p[0]}<br>${c.p[1]}</div>
+                                <div class="vs">VS</div>
+                                <div class="team-box">${c.p[2]}<br>${c.p[3]}</div>
+                            </div>
+                            ${isAdmin ? `<button class="btn-danger">⏹️ 試合終了</button>` : ''}
+                        </div>`;
+                } else {
+                    courtsHtml += `
+                        <div class="court-card">
+                            <div style="font-weight:bold; margin-bottom:10px;">コート ${c.id}</div>
+                            <div style="padding:20px; color:#6B7280;">待機中 (空き)</div>
+                            ${isAdmin ? `<button class="btn-primary">▶ 補充する</button>` : ''}
+                        </div>`;
+                }
+            });
+            document.getElementById('courtsArea').innerHTML = courtsHtml;
+        }
+    </script>
+</body>
+</html>
