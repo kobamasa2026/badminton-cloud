@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード V15(クラウド版)</title>
+    <title>バドミントン組み合わせボード V16(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -82,6 +82,7 @@
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--status-next); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
         .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
+        .manual-fill-area { background: #FEF3C7; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #FCD34D; text-align: center;}
 
         /* コート */
         .courts-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
@@ -123,7 +124,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V15 <span class="admin-badge">監督モード</span></h1>
+        <h1 class="header-title">ボード V16 <span class="admin-badge">監督モード</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -136,12 +137,16 @@
                     <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先選択</span>
                 </div>
                 
+                <div id="manualFillArea" class="manual-fill-area admin-only" style="display:none;">
+                    <button id="btnManualFill" class="btn-primary" onclick="fillCourtWithSelected()" disabled>選択中... (0/4名)</button>
+                </div>
+
                 <div class="next-queue-container" id="nextQueueUI"></div>
             </div>
 
             <!-- 管理者専用アクション -->
             <div class="action-grid admin-only">
-                <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ 一斉補充</button>
+                <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ 一斉補充(シャッフル)</button>
                 <button class="btn-primary" style="background:#6366F1;" onclick="reshuffleSelectedCourts()">🔁 選択再抽選</button>
             </div>
 
@@ -149,7 +154,7 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
-        <!-- 2. メンバービュー (管理者のみアクセス可) -->
+        <!-- 2. メンバービュー -->
         <div id="view-roster" class="view admin-only">
             <div class="card">
                 <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規メンバー登録</h3>
@@ -172,7 +177,7 @@
             </div>
         </div>
 
-        <!-- 3. 設定ビュー (管理者のみアクセス可) -->
+        <!-- 3. 設定ビュー -->
         <div id="view-settings" class="view admin-only">
             <div class="card">
                 <div class="section-title">コート設定</div>
@@ -225,7 +230,7 @@
 
     <script>
         // ==========================================
-        // 1. Firebase接続設定 (ユーザー設定済み)
+        // 1. Firebase接続設定
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
@@ -286,7 +291,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1 };
-        const STORAGE_KEY = 'badmin_v15_data';
+        const STORAGE_KEY = 'badmin_v16_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -298,10 +303,10 @@
                 db.players = data.players || [];
                 db.queue = data.queue || [];
                 
-                // ★ Firebaseの「空配列が消滅する」仕様への対策
+                // ★ Firebaseの空配列消滅対策
                 let fetchedCourts = data.courts || [];
                 fetchedCourts.forEach(c => {
-                    if (!c.p) c.p = []; // 誰もいないコート(空配列)を明示的に復元
+                    if (!c.p) c.p = []; 
                 });
                 db.courts = fetchedCourts;
                 
@@ -316,7 +321,6 @@
                 render();
             } else {
                 if (isAdmin) {
-                    // クラウドにデータがない場合の初期化（管理者のみ）
                     adjustCourts();
                     saveToCloud();
                     document.getElementById('loadingOverlay').style.display = 'none';
@@ -328,11 +332,8 @@
             }
         });
 
-        // アプリ起動時の処理
         window.onload = function() {
             initRouter();
-            
-            // ローカルストレージ（バックアップ）の読み込み
             let saved = localStorage.getItem(STORAGE_KEY);
             if (saved && !isInitialLoad) {
                 // すでにクラウドデータがあれば上書きしない
@@ -342,7 +343,7 @@
                     if (parsed.players) db.players = parsed.players;
                     if (parsed.queue) db.queue = parsed.queue;
                     if (parsed.courts) {
-                        parsed.courts.forEach(c => { if(!c.p) c.p = []; }); // ローカル読込時も復元
+                        parsed.courts.forEach(c => { if(!c.p) c.p = []; });
                         db.courts = parsed.courts;
                     }
                     if (parsed.maxCourts) db.maxCourts = parsed.maxCourts;
@@ -350,7 +351,6 @@
                     adjustCourts();
                 } catch(e) {}
             }
-            
             updateUndoButton();
         };
 
@@ -371,11 +371,10 @@
             if (!isAdmin) return;
             if (stateHistory.length > 0) {
                 db = JSON.parse(stateHistory.pop());
-                // 戻る時も空配列を復元
                 db.courts.forEach(c => { if(!c.p) c.p = []; });
                 manualSelectedIds = [];
                 updateUndoButton();
-                saveToCloud(); // 履歴をクラウドに送信して全員の画面を戻す
+                saveToCloud();
             }
         }
 
@@ -392,7 +391,6 @@
             let n = db.maxCourts + delta;
             if (delta < 0) {
                 let lastCourt = db.courts[db.courts.length - 1];
-                // エラー防止: 最後のコートに人がいる場合は減らせない
                 if (lastCourt && lastCourt.p && lastCourt.p.length > 0) return; 
             }
             if (n >= 1 && n <= 12) {
@@ -511,14 +509,13 @@
                 if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
                 else alert("優先できるのは1回に4名までです。");
             }
-            render(); // ローカルの選択状態だけなのでクラウドには保存しない
+            render(); 
         }
 
-        // 「▶ 次の4人を入れる」ボタンの統合処理
+        // 個別補充 (マニュアル選択状態であればそれを優先)
         function fillCourt(idx) {
             if (!isAdmin) return;
             
-            // 手動で選択されている人がいる場合
             if (manualSelectedIds.length > 0) {
                 if (manualSelectedIds.length !== 4) {
                     return alert("優先して入れるには、4名ぴったり選択してください。\n（現在 " + manualSelectedIds.length + "名選択中）");
@@ -526,21 +523,19 @@
                 saveStateToHistory();
                 let court = db.courts[idx];
                 
-                // 選択された4人を列から抜く
                 db.queue = db.queue.filter(id => !manualSelectedIds.includes(id));
-                
                 manualSelectedIds.forEach(id => {
                     let p = db.players.find(pl => pl.id === id);
                     p.status = 'playing'; p.playCount++; court.p.push(id);
                 });
                 
-                court.p.sort(() => Math.random() - 0.5); // チームをシャッフル
-                manualSelectedIds = []; // 選択解除
+                court.p.sort(() => Math.random() - 0.5);
+                manualSelectedIds = [];
                 saveToCloud();
                 return;
             }
 
-            // 通常の補充処理（誰も選択されていない場合）
+            // 通常補充
             if (db.queue.length < 4) return alert("待機人数が4名未満です。");
             saveStateToHistory();
             let court = db.courts[idx];
@@ -553,6 +548,7 @@
             saveToCloud();
         }
 
+        // 一斉補充（シャッフル機能）
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
             if (manualSelectedIds.length > 0) {
@@ -565,8 +561,13 @@
             if (courtsToFill === 0) return alert("待機人数が足りません。");
 
             saveStateToHistory();
+            
+            // ★ マンネリ防止：待機している全員（キュー）を完全にシャッフルする
+            db.queue.sort(() => Math.random() - 0.5);
+            
+            // シャッフルされた状態の先頭から必要な人数を取り出す
             let playersToAssign = db.queue.splice(0, courtsToFill * 4);
-            playersToAssign.sort(() => Math.random() - 0.5);
+            
             for (let i = 0; i < courtsToFill; i++) {
                 let court = emptyCourts[i];
                 let group = playersToAssign.slice(i * 4, i * 4 + 4);
