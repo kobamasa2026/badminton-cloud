@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード V17(クラウド版)</title>
+    <title>バドミントン組み合わせボード V18(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -86,26 +86,37 @@
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--text-main); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
         .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
-        .manual-fill-area { background: #FEF3C7; padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #FCD34D; text-align: center;}
 
         /* コート (区切り強調) */
         .courts-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
         @media(min-width: 768px) { .courts-grid { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); } }
         
         .court-card { 
-            background: #FFFFFF; border: 3px solid #D1D5DB; /* より濃い枠と背景 */
+            background: #FFFFFF; border: 3px solid #D1D5DB; 
             border-radius: 16px; padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
             display: flex; flex-direction: column; transition: all 0.2s;
         }
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
         .court-title { font-weight: 900; font-size: 1.6rem; color: var(--text-main); letter-spacing: 1px;}
         
-        /* チーム選択時のデザイン */
-        .team-box { background: var(--bg-base); border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;}
+        /* チームボックスの改行防止(min-width: 0 と overflow:hidden) */
+        .team-box { 
+            background: var(--bg-base); border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-width: 0; overflow: hidden;
+        }
         .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
         .team-box.selected { border-color: #F59E0B; background: #FEF3C7; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.02); }
         
-        .player-name { font-weight: 900; font-size: clamp(1.4rem, 4.5vw + 0.5rem, 2.2rem); margin: 6px 0; letter-spacing: 1px; line-height: 1.15; word-break: keep-all;}
+        /* プレイヤー名の改行防止 */
+        .player-name { 
+            font-weight: 900; 
+            font-size: clamp(1rem, 3.5vw + 0.3rem, 1.8rem); /* サイズが画面に応じて可変 */
+            margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* 改行させず「...」で省略 */
+            width: 100%; display: block;
+        }
+        
         .vs-badge { background: var(--text-main); color: white; font-size: 1.1rem; font-weight: 900; padding: 8px 16px; border-radius: 16px; margin: 0 12px; }
         .match-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-grow: 1;}
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;}
@@ -135,7 +146,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V17 <span class="admin-badge">監督モード</span></h1>
+        <h1 class="header-title">ボード V18 <span class="admin-badge">監督モード</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -147,11 +158,6 @@
                     ⏩ 待機列 全体
                     <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先選択</span>
                 </div>
-                
-                <div id="manualFillArea" class="manual-fill-area admin-only" style="display:none;">
-                    <button id="btnManualFill" class="btn-primary" onclick="fillCourtWithSelected()" disabled>選択中... (0/4名)</button>
-                </div>
-
                 <div class="next-queue-container" id="nextQueueUI"></div>
             </div>
 
@@ -159,6 +165,15 @@
             <div class="action-grid admin-only">
                 <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ 一斉補充(シャッフル)</button>
                 <button class="btn-primary" style="background:#6366F1;" onclick="reshuffleSelectedCourts()">🔁 選択再抽選</button>
+            </div>
+
+            <!-- 色の凡例 (試合画面) -->
+            <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
+                <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-waiting);"></div>待機</span>
+                <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-next);box-shadow:0 0 4px var(--status-next);"></div>NEXT</span>
+                <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中</span>
+                <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-inactive);"></div>休憩</span>
+                <span style="display:flex; align-items:center; gap:4px; color:#E11D48;">■ 女性(赤字)</span>
             </div>
 
             <div class="courts-grid" id="courtsArea"></div>
@@ -186,6 +201,7 @@
                     <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-next);box-shadow:0 0 4px var(--status-next);"></div>NEXT</span>
                     <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中</span>
                     <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-inactive);"></div>休憩</span>
+                    <span style="display:flex; align-items:center; gap:4px; color:#E11D48;">■ 女性(赤字)</span>
                 </div>
                 <div id="presentList"></div>
                 <div style="text-align:center; padding:16px; color:var(--text-sub); display:none;" id="emptyPresent">参加中はいません</div>
@@ -266,7 +282,7 @@
 
     <script>
         // ==========================================
-        // 1. Firebase接続設定 (ユーザー設定済み)
+        // 1. Firebase接続設定
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
@@ -281,7 +297,7 @@
         const dbRef = firebase.database().ref('badminCloudData');
 
         // ==========================================
-        // 2. 権限管理 (URLパラメータ判定)
+        // 2. 権限管理
         // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
         const isAdmin = urlParams.get('admin') === 'secret';
@@ -327,7 +343,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v17_data';
+        const STORAGE_KEY = 'badmin_v18_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -416,7 +432,6 @@
             if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0; 
         }
         
-        // 性別ごとの色付けを行うフォーマット関数
         function formatName(p) { 
             let nameStr = p.dailyNum ? `${p.dailyNum}: ${p.name}` : p.name;
             let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
@@ -452,12 +467,12 @@
                 let dateStr = new Date().toISOString().split('T')[0];
                 let promptDate = prompt("保存する日付を入力してください（不要な場合はそのままOKまたはキャンセル）", dateStr);
                 
-                if (promptDate !== null) { // キャンセル以外
+                if (promptDate !== null) { 
                     if (promptDate.trim() !== "") {
                         if (!db.history) db.history = {};
                         let records = {};
                         db.players.forEach(p => {
-                            if (p.dailyNum) { // 受付した人だけ保存
+                            if (p.dailyNum) { 
                                 records[p.id] = { name: p.name, playCount: p.playCount, gender: p.gender, dailyNum: p.dailyNum };
                             }
                         });
@@ -563,7 +578,7 @@
                 manualSelectedIds = manualSelectedIds.filter(x => x !== id);
             } else {
                 if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
-                else alert("優先できるのは1回に4名までです。");
+                else alert("優先できるのは1回に最大4名までです。");
             }
             render(); 
         }
@@ -571,33 +586,38 @@
         function fillCourt(idx) {
             if (!isAdmin) return;
             
-            // チーム枠（チームボックス）をタップして優先投入する場合
-            if (manualSelectedIds.length > 0) {
-                if (manualSelectedIds.length !== 4) {
-                    return alert("優先して入れるには、4名ぴったり選択してください。\n（現在 " + manualSelectedIds.length + "名選択中）");
-                }
-                saveStateToHistory();
-                let court = db.courts[idx];
-                db.queue = db.queue.filter(id => !manualSelectedIds.includes(id));
-                manualSelectedIds.forEach(id => {
-                    let p = db.players.find(pl => pl.id === id);
-                    p.status = 'playing'; p.playCount++; court.p.push(id);
-                });
-                court.p.sort(() => Math.random() - 0.5);
-                manualSelectedIds = [];
-                saveToCloud();
-                return;
+            let court = db.courts[idx];
+            let needed = 4;
+            
+            // 選択されている人数（最大4人）
+            let selectedPlayersToEnter = manualSelectedIds.slice(0, needed);
+            let remainingNeeded = needed - selectedPlayersToEnter.length;
+            
+            // 選択されていない待機列のメンバー
+            let unselectedQueue = db.queue.filter(id => !selectedPlayersToEnter.includes(id));
+            
+            if (unselectedQueue.length < remainingNeeded) {
+                return alert(`待機人数が足りません。（あと${remainingNeeded - unselectedQueue.length}名必要です）`);
             }
 
-            if (db.queue.length < 4) return alert("待機人数が4名未満です。");
             saveStateToHistory();
-            let court = db.courts[idx];
-            let selected = db.queue.splice(0, 4);
-            selected.forEach(id => {
+            
+            // 足りない人数分だけ待機列の先頭から取得
+            let additional = unselectedQueue.splice(0, remainingNeeded);
+            let finalPlayers = [...selectedPlayersToEnter, ...additional];
+            
+            // 待機列を更新
+            db.queue = unselectedQueue;
+            
+            finalPlayers.forEach(id => {
                 let p = db.players.find(pl => pl.id === id);
                 p.status = 'playing'; p.playCount++; court.p.push(id);
             });
+            
             court.p.sort(() => Math.random() - 0.5);
+            
+            // 投入したメンバーを選択解除
+            manualSelectedIds = manualSelectedIds.filter(id => !finalPlayers.includes(id));
             saveToCloud();
         }
 
@@ -627,7 +647,6 @@
             saveToCloud();
         }
 
-        // 四角いチームの枠をタップした時の選択トグル
         function toggleCheck(idx, checked) { 
             if(!isAdmin) return; 
             db.courts[idx].selected = checked; 
@@ -647,7 +666,6 @@
             saveToCloud();
         }
 
-        // 履歴管理の処理
         function renderHistoryOptions() {
             let select = document.getElementById('historyDateSelect');
             if (!select) return;
@@ -670,7 +688,7 @@
             
             let records = db.history[date];
             let arr = Object.keys(records).map(id => ({id: id, ...records[id]}));
-            arr.sort((a,b) => (a.dailyNum || 0) - (b.dailyNum || 0)); // 番号順
+            arr.sort((a,b) => (a.dailyNum || 0) - (b.dailyNum || 0)); 
             
             let html = '';
             arr.forEach(r => {
@@ -692,7 +710,6 @@
             db.history[date][playerId].playCount += delta;
             if(db.history[date][playerId].playCount < 0) db.history[date][playerId].playCount = 0;
             saveToCloud(); 
-            // 描画は on('value') で呼ばれる render 内の renderHistoryOptions で行われる
         }
 
         function deleteHistory() {
@@ -715,7 +732,6 @@
                 let presentHtml = "";
                 let presentCount = 0;
 
-                // 参加中メンバーを受付番号順にソートして表示
                 let presentPlayers = db.players.filter(p => p.status !== 'inactive');
                 presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
 
@@ -732,7 +748,6 @@
                     presentCount++;
                 });
 
-                // 名簿・未受付エリア
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
@@ -770,22 +785,7 @@
             }
             document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
-            if (isAdmin) {
-                let manualBtnArea = document.getElementById('manualFillArea');
-                let btnManualFill = document.getElementById('btnManualFill');
-                if (manualSelectedIds.length > 0) {
-                    manualBtnArea.style.display = 'block';
-                    if (manualSelectedIds.length === 4) {
-                        btnManualFill.disabled = false; btnManualFill.innerText = "👑 選択した4人を空きコートへ"; btnManualFill.style.background = "#F59E0B";
-                    } else {
-                        btnManualFill.disabled = true; btnManualFill.innerText = `選択中... (${manualSelectedIds.length}/4名)`; btnManualFill.style.background = "#9CA3AF";
-                    }
-                } else {
-                    manualBtnArea.style.display = 'none';
-                }
-            }
-
-            // コートUI (区切り強化 ＆ チーム枠のタップ選択)
+            // コートUI 
             let courtsHtml = "";
             db.courts.forEach((c, idx) => {
                 if (c.p && c.p.length === 4) {
