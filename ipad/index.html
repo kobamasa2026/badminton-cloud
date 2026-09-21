@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V26(クラウド版・マルチ対応)</title>
+    <title>ボード V26(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -139,6 +139,7 @@
         <span id="loadingMsg">クラウドへ接続中...</span>
     </div>
 
+    <!-- ⚠️ ヘッダー：初期化ボタンは保守タブへ移動しました -->
     <header>
         <h1 class="header-title" style="margin:0;">ボード V26 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
@@ -253,6 +254,7 @@
 
     <!-- タブを3つに統合 -->
     <nav class="bottom-nav">
+        <!-- hrefにはURLパラメータが消えないようダミーのクエリを入れておく -->
         <a href="?view=matches" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
         </a>
@@ -293,11 +295,27 @@
         // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
         
-        // ★ルーム名（団体ID）は `g` に変更
-        const groupId = urlParams.get('g') || 'default';
+        // ★許可するルーム（団体ID）と、それぞれの監督用パスワードのリスト (ホワイトリスト)
+        // ※ ここに登録されていないパラメータでアクセスされた場合はエラーになります（勝手なルーム生成の防止）
+        const allowedGroups = {
+            'yyc': 'secret'   // 第1グループ (URL: ?g=yyc&p=secret)
+            // 'club2': 'pass2' のように、団体が増えたらここに追加します
+        };
         
-        // ★パスワードは `p` (現在は 'secret' で固定)
-        const isAdmin = urlParams.get('p') === 'secret'; 
+        const groupId = urlParams.get('g');
+
+        // ★不正アクセスの完全ブロック処理
+        if (!groupId || !allowedGroups.hasOwnProperty(groupId)) {
+            document.body.innerHTML = `
+                <div style="padding: 40px 20px; text-align: center; font-size: 1.2rem; font-weight: bold; color: #DC2626;">
+                    【エラー】無効なアクセスです。<br><br>
+                    <span style="font-size: 0.9rem; color: #6B7280;">正しい団体用のURL（例: ?g=yyc）からアクセスしてください。</span>
+                </div>`;
+            throw new Error("Invalid Group ID"); // これによりFirebaseの通信を含めアプリの起動が完全にストップします
+        }
+        
+        // パスワード判定
+        const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
 
         if (isAdmin) {
             document.body.classList.add('admin-mode');
@@ -305,8 +323,8 @@
             document.body.classList.add('viewer-mode');
         }
 
-        // ★V25との干渉を防ぐため、保存先を `badminCloudData_V26` に変更し、団体（g）ごとに分ける
-        const dbRef = firebase.database().ref('badminCloudData_V26/' + groupId);
+        // ★V25との干渉（データ消失）を防ぐための保存先変更（ipadフォルダ用）
+        const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
         // 3. ルーティング
@@ -349,7 +367,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v26_data_' + groupId;
+        const STORAGE_KEY = 'badmin_v26_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -686,7 +704,7 @@
         }
 
         // ==========================================
-        // 保守・履歴管理
+        // 保守・履歴・名簿管理機能
         // ==========================================
         
         function renderHistoryOptions() {
@@ -743,8 +761,7 @@
                 saveToCloud();
             }
         }
-        
-        // 名簿の編集・削除機能
+
         function renderMaintenanceRoster() {
             let area = document.getElementById('maintenanceRosterArea');
             if (!area) return;
@@ -754,7 +771,6 @@
                 let statusBadge = p.status !== 'inactive' 
                     ? '<span style="color:#10B981; font-size:0.8rem; font-weight:bold; margin-left:8px;">[IN]</span>' 
                     : '';
-                
                 let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
                 
                 html += `
@@ -769,7 +785,7 @@
             if (html === '') html = '<div style="color:var(--text-sub); text-align:center;">名簿は空です</div>';
             area.innerHTML = html;
         }
-        
+
         function editMember(id) {
             if(!isAdmin) return;
             let p = db.players.find(x => x.id === id);
@@ -790,7 +806,7 @@
             let p = db.players.find(x => x.id === id);
             if(!p) return;
             if(p.status !== 'inactive') {
-                return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩（OUT）」させてください。");
+                return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩」させてください。");
             }
             if(confirm(`「${p.name}」さんを名簿から完全に削除しますか？`)) {
                 saveStateToHistory();
