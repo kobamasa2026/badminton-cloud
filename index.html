@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V24(クラウド版)</title>
+    <title>ボード V25(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -53,6 +53,11 @@
             font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; cursor: pointer;
         }
         .btn-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .btn-danger-small {
+            background: #FEE2E2; color: #DC2626; border: none; padding: 8px 12px; border-radius: 20px;
+            font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; cursor: pointer;
+        }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-height) + env(safe-area-inset-bottom));
@@ -103,13 +108,11 @@
             min-width: 0; overflow: hidden;
         }
         .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        /* シャッフル選択時はピンク(#EC4899)に変更 */
         .team-box.selected { border-color: #EC4899; background: #FCE7F3; box-shadow: 0 0 12px rgba(236, 72, 153, 0.5); transform: scale(1.02); }
         
         .player-name { 
             font-weight: 900; margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
-            white-space: nowrap; 
-            width: 100%; display: block;
+            white-space: nowrap; width: 100%; display: block;
         }
         
         .vs-badge { background: transparent; color: var(--text-sub); font-size: 1.8rem; font-weight: 900; margin: 0 8px; }
@@ -136,9 +139,13 @@
         <span id="loadingMsg">クラウドへ接続中...</span>
     </div>
 
+    <!-- ヘッダーに初期化ボタンを移動 -->
     <header>
-        <h1 class="header-title">ボード V24 <span class="admin-badge">監督</span></h1>
-        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
+        <h1 class="header-title" style="margin:0;">ボード V25 <span class="admin-badge">監督</span></h1>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn-danger-small admin-only" onclick="confirmResetAll()">⚠️ 初期化</button>
+            <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
+        </div>
     </header>
 
     <main>
@@ -150,7 +157,7 @@
                         ⏩ 待機順
                         <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>
                     </div>
-                    <!-- 凡例(NEXTと優先のみに絞る) -->
+                    <!-- 凡例 -->
                     <div style="font-size:0.75rem; color:var(--text-main); display:flex; gap:8px; font-weight:bold;">
                         <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
                         <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></div>優先</span>
@@ -162,7 +169,6 @@
 
             <div class="action-grid admin-only">
                 <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ シャッフルIN(一斉)</button>
-                <!-- シャッフル(選択)ボタンをピンク色に変更 -->
                 <button class="btn-primary" style="background:#EC4899; color:#FFFFFF;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
             </div>
 
@@ -171,6 +177,8 @@
 
         <!-- 2. メンバービュー (管理者のみ) -->
         <div id="view-roster" class="view admin-only">
+            
+            <!-- ① 新規登録 -->
             <div class="card">
                 <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規登録</h3>
                 <div style="display:flex; gap:8px;">
@@ -183,6 +191,14 @@
                 </div>
             </div>
 
+            <!-- ② 名簿（受付前） -->
+            <div class="card">
+                <div class="section-title">名簿</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付</p>
+                <div id="inactiveList"></div>
+            </div>
+
+            <!-- ③ 参加中 -->
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
@@ -191,10 +207,11 @@
                 <div id="presentList"></div>
             </div>
 
+            <!-- ④ 練習の終了（リセット・履歴保存） -->
             <div class="card">
-                <div class="section-title">名簿</div>
-                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップでIN</p>
-                <div id="inactiveList"></div>
+                <div class="section-title">練習の終了</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">本日の参加回数を履歴に保存し、全員を名簿に戻します。</p>
+                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:0;" onclick="startNewDay()">🌅 練習を終了する (履歴保存・リセット)</button>
             </div>
         </div>
 
@@ -210,7 +227,7 @@
             </div>
         </div>
 
-        <!-- 4. 設定ビュー (管理者のみ) -->
+        <!-- 4. 設定ビュー (管理者のみ) ※ファイル読込を撤廃しコート設定だけに -->
         <div id="view-settings" class="view admin-only">
             <div class="card">
                 <div class="section-title">コート数</div>
@@ -221,18 +238,6 @@
                         <button class="btn-secondary" style="padding:12px 24px; font-size:1.5rem;" onclick="changeMaxCourts(1)">＋</button>
                     </div>
                 </div>
-            </div>
-
-            <div class="card">
-                <div class="section-title">データ管理</div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom: 24px;">
-                    <button class="btn-secondary" style="padding:16px; font-size:1rem;" onclick="exportRoster()">📤 名簿保存</button>
-                    <button class="btn-secondary" style="padding:16px; font-size:1rem;" onclick="document.getElementById('importFile').click()">📥 読込</button>
-                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importRoster(event)">
-                </div>
-                <hr style="border:none; border-top:2px solid var(--border); margin:24px 0;">
-                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:16px;" onclick="startNewDay()">🌅 リセット・履歴保存</button>
-                <button class="btn-danger" onclick="resetAllData()">⚠️ 初期化 (全削除)</button>
             </div>
         </div>
     </main>
@@ -324,7 +329,6 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v24_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -364,30 +368,11 @@
 
         window.onload = function() {
             initRouter();
-            let saved = localStorage.getItem(STORAGE_KEY);
-            if (saved && !isInitialLoad) {
-                // クラウド優先
-            } else if (saved && isInitialLoad && isAdmin) {
-                try {
-                    let parsed = JSON.parse(saved);
-                    if (parsed.players) db.players = parsed.players;
-                    if (parsed.queue) db.queue = parsed.queue;
-                    if (parsed.courts) {
-                        parsed.courts.forEach(c => { if(!c.p) c.p = []; });
-                        db.courts = parsed.courts;
-                    }
-                    if (parsed.maxCourts) db.maxCourts = parsed.maxCourts;
-                    if (parsed.dailyCounter) db.dailyCounter = parsed.dailyCounter;
-                    if (parsed.history) db.history = parsed.history;
-                    adjustCourts();
-                } catch(e) {}
-            }
             updateUndoButton();
         };
 
         function saveToCloud() {
             if (isAdmin) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
                 dbRef.set(db);
             }
         }
@@ -435,6 +420,23 @@
         // ==========================================
         // 5. アクション関数群
         // ==========================================
+        
+        // ★追加：安全装置付きの初期化機能
+        function confirmResetAll() {
+            if (!isAdmin) return;
+            let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
+            if (input === "削除") {
+                db = { players: [], queue: [], courts: [], maxCourts: db.maxCourts, dailyCounter: 1, history: {} };
+                stateHistory = [];
+                manualSelectedIds = [];
+                adjustCourts();
+                saveToCloud();
+                alert("初期化が完了しました。");
+            } else if (input !== null) {
+                alert("入力が一致しません。初期化をキャンセルしました。");
+            }
+        }
+
         function changeMaxCourts(delta) {
             if (!isAdmin) return;
             let n = db.maxCourts + delta;
@@ -457,9 +459,9 @@
 
         function startNewDay() {
             if (!isAdmin) return;
-            if (confirm("本日をリセットし履歴を保存しますか？")) {
+            if (confirm("本日の練習を終了し、全員をリセットしますか？\n（参加履歴の保存も行えます）")) {
                 let dateStr = new Date().toISOString().split('T')[0];
-                let promptDate = prompt("保存する日付を入力", dateStr);
+                let promptDate = prompt("履歴を保存する日付を入力してください。\n（※保存しない場合は空欄のままOKを押してください）", dateStr);
                 
                 if (promptDate !== null) { 
                     if (promptDate.trim() !== "") {
@@ -480,19 +482,8 @@
                     db.courts.forEach(c => { c.p = []; c.selected = false; });
                     manualSelectedIds = [];
                     saveToCloud();
-                    routeTo(null, 'roster');
+                    alert("練習を終了し、全員をリセットしました。");
                 }
-            }
-        }
-        
-        function resetAllData() {
-            if (!isAdmin) return;
-            if (confirm("全データを初期化しますか？")) {
-                db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-                stateHistory = [];
-                manualSelectedIds = [];
-                adjustCourts();
-                saveToCloud();
             }
         }
 
@@ -746,7 +737,7 @@
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
                             <div class="member-info"><div style="width:14px; height:14px; flex-shrink:0;"></div><div class="member-name">${formatNameHTML(p)}${breakBadge}</div></div>
-                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ IN</span></div>
+                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ 受付</span></div>
                         </div>`;
                 });
 
@@ -820,50 +811,6 @@
                 }
             });
             document.getElementById('courtsArea').innerHTML = courtsHtml;
-        }
-
-        // ==========================
-        // 名簿の読み書き
-        // ==========================
-        function exportRoster() {
-            if(!isAdmin) return;
-            let rosterData = { players: db.players.map(p => ({ id: p.id, name: p.name, gender: p.gender })) };
-            let blob = new Blob([JSON.stringify(rosterData)], { type: "application/json" });
-            let file = new File([blob], "roster.json", { type: "application/json" });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ title: 'バドミントン名簿', files: [file] }).catch(err => console.log(err));
-            } else {
-                let url = URL.createObjectURL(blob);
-                let dlNode = document.createElement('a');
-                dlNode.href = url; dlNode.download = "roster.json";
-                document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
-            }
-        }
-
-        function importRoster(event) {
-            if(!isAdmin) return;
-            let file = event.target.files[0];
-            if (!file) return;
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    let imported = JSON.parse(e.target.result);
-                    if (imported.players && Array.isArray(imported.players)) {
-                        saveStateToHistory();
-                        let added = 0;
-                        imported.players.forEach(imp => {
-                            if (!db.players.some(p => p.name === imp.name)) {
-                                db.players.push({ id: imp.id || Date.now()+Math.random(), name: imp.name, gender: imp.gender || 'M', status: 'inactive', playCount: 0, dailyNum: null });
-                                added++;
-                            }
-                        });
-                        alert(`${added}名を追加しました。`);
-                        saveToCloud();
-                    }
-                } catch(err) { alert("失敗しました。"); }
-                event.target.value = ""; 
-            };
-            reader.readAsText(file);
         }
     </script>
 </body>
