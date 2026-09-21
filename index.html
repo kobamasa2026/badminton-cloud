@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V22(クラウド版)</title>
+    <title>ボード V23(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -103,14 +103,11 @@
             min-width: 0; overflow: hidden;
         }
         .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        /* シャッフル選択時は黄色系(#EAB308)に変更 */
         .team-box.selected { border-color: #EAB308; background: #FEF9C3; box-shadow: 0 0 12px rgba(234, 179, 8, 0.5); transform: scale(1.02); }
         
-        /* プレイヤー名の改行と「...」見切れ防止 */
         .player-name { 
             font-weight: 900; margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
             white-space: nowrap; 
-            /* overflow: hidden や text-overflow: ellipsis を削除し、強制的に収める */
             width: 100%; display: block;
         }
         
@@ -124,7 +121,7 @@
         .status-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
         .dot-playing { background: var(--status-playing); }
         
-        .member-name { font-weight: 900; font-size: 1.2rem; }
+        .member-name { font-weight: 900; font-size: 1.2rem; display: flex; align-items: center;}
         .member-meta { font-size: 0.9rem; color: var(--text-sub); display: flex; gap: 8px; font-weight: bold;}
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: flex-end; padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
@@ -139,7 +136,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V22 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title">ボード V23 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -164,7 +161,7 @@
 
             <div class="action-grid admin-only">
                 <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ シャッフルIN(一斉)</button>
-                <button class="btn-primary" style="background:#6366F1;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
+                <button class="btn-primary" style="background:#EAB308; color:#FFFFFF;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
             </div>
 
             <div class="courts-grid" id="courtsArea"></div>
@@ -186,9 +183,8 @@
 
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
-                <!-- メンバー画面用の凡例（試合中の〇印の意味を説明） -->
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
-                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (OUT不可)</span>
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (休憩不可)</span>
                 </div>
                 <div id="presentList"></div>
             </div>
@@ -258,7 +254,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
             <p style="font-size:1rem; color:var(--text-sub); margin-bottom:24px; font-weight:bold;">待機から外し、休憩へ移動します。</p>
-            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩・OUT</button>
+            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩</button>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeModal()">キャンセル</button>
         </div>
     </div>
@@ -326,7 +322,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v22_data';
+        const STORAGE_KEY = 'badmin_v23_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -427,7 +423,7 @@
             return `<span class="${colorClass}">${numHtml}${p.name}</span>`;
         }
         
-        // 文字数に応じてフォントサイズを可変（「…」にせず縮小して詰め込む）
+        // 文字数に応じてフォントサイズを可変
         function getDynamicFontSize(text) {
             if (!text) return "";
             let len = text.length;
@@ -733,7 +729,6 @@
                     let isNext = (p.status === 'waiting' && db.queue.indexOf(p.id) < 4 && db.queue.indexOf(p.id) !== -1);
                     let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
                     
-                    // 試合中の人のみ〇印を表示（クリック不可の目印）
                     let dotHtml = p.status === 'playing' 
                         ? '<div class="status-dot dot-playing"></div>' 
                         : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
@@ -747,9 +742,12 @@
                 });
 
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
+                    // ★追加: 休憩中バッジ (dailyNumが存在すれば本日受付済み＝休憩中)
+                    let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
+                    
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
-                            <div class="member-info"><div style="width:14px; height:14px; flex-shrink:0;"></div><div class="member-name">${formatNameHTML(p)}</div></div>
+                            <div class="member-info"><div style="width:14px; height:14px; flex-shrink:0;"></div><div class="member-name">${formatNameHTML(p)}${breakBadge}</div></div>
                             <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ IN</span></div>
                         </div>`;
                 });
