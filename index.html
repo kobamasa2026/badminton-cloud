@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V23(クラウド版)</title>
-    　
+    <title>ボード V24(クラウド版)</title>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -103,7 +103,8 @@
             min-width: 0; overflow: hidden;
         }
         .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        .team-box.selected { border-color: #EAB308; background: #FEF9C3; box-shadow: 0 0 12px rgba(234, 179, 8, 0.5); transform: scale(1.02); }
+        /* シャッフル選択時はピンク(#EC4899)に変更 */
+        .team-box.selected { border-color: #EC4899; background: #FCE7F3; box-shadow: 0 0 12px rgba(236, 72, 153, 0.5); transform: scale(1.02); }
         
         .player-name { 
             font-weight: 900; margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
@@ -136,7 +137,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V23 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title">ボード V24 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -161,7 +162,8 @@
 
             <div class="action-grid admin-only">
                 <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ シャッフルIN(一斉)</button>
-                <button class="btn-primary" style="background:#EAB308; color:#FFFFFF;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
+                <!-- シャッフル(選択)ボタンをピンク色に変更 -->
+                <button class="btn-primary" style="background:#EC4899; color:#FFFFFF;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
             </div>
 
             <div class="courts-grid" id="courtsArea"></div>
@@ -322,7 +324,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v23_data';
+        const STORAGE_KEY = 'badmin_v24_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -411,19 +413,16 @@
             if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0; 
         }
         
-        // 文字数計算用（プレーンテキスト）
         function getPlayerDisplayName(p) {
             return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name;
         }
 
-        // 描画用（番号を大きく・青く表示）
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
             let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
             return `<span class="${colorClass}">${numHtml}${p.name}</span>`;
         }
         
-        // 文字数に応じてフォントサイズを可変
         function getDynamicFontSize(text) {
             if (!text) return "";
             let len = text.length;
@@ -742,7 +741,6 @@
                 });
 
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
-                    // ★追加: 休憩中バッジ (dailyNumが存在すれば本日受付済み＝休憩中)
                     let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
                     
                     inactiveHtml += `
