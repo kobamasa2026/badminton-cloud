@@ -1,1 +1,917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ボード V26(クラウド版)</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+    <style>
+        :root {
+            --primary: #4F46E5; --primary-dark: #4338CA;
+            --bg-base: #F3F4F6; --bg-surface: #FFFFFF;
+            --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
+            --status-waiting: #3B82F6; 
+            --status-next: #8B5CF6; 
+            --status-playing: #10B981; --status-inactive: #9CA3AF;
+            --nav-height: 65px; --header-height: 56px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-base); color: var(--text-main); margin: 0; padding: 0;
+            padding-top: var(--header-height); padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+            overflow-x: hidden;
+        }
+
+        body.viewer-mode .admin-only { display: none !important; }
+        body.admin-mode .admin-badge { display: inline-block; }
+        .admin-badge { background: #DC2626; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-left: 10px; display: none; }
+
+        .gender-F { color: #E11D48; }
+        .gender-M { color: inherit; }
+
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-surface);
+            z-index: 9999; display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; font-weight: bold; color: var(--text-sub); flex-direction: column; gap:10px;
+        }
+
+        header {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); background: var(--bg-surface);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 50;
+        }
+        .header-title { font-size: 1.2rem; font-weight: 900; color: var(--primary); margin: 0; display:flex; align-items:center;}
+        .btn-undo {
+            background: #F3F4F6; color: var(--text-main); border: none; padding: 8px 12px; border-radius: 20px;
+            font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; cursor: pointer;
+        }
+        .btn-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .btn-danger-small {
+            background: #FEE2E2; color: #DC2626; border: none; padding: 8px 12px; border-radius: 20px;
+            font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; cursor: pointer;
+        }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+            background: var(--bg-surface); display: flex; justify-content: space-around;
+            padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 3px rgba(0,0,0,0.05); z-index: 50;
+        }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.4rem; }
+
+        .view { display: none; padding: 16px; animation: fadeIn 0.2s ease-out; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .section-title { font-size: 1.2rem; font-weight: 900; margin: 0 0 12px 0; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;}
+        .card { background: var(--bg-surface); border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.1rem; width: 100%; cursor: pointer; }
+        .btn-secondary { background: #E5E7EB; color: var(--text-main); border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-danger { background: #FEE2E2; color: #DC2626; border: none; padding: 14px; border-radius: 12px; font-weight: bold; font-size: 1rem; width: 100%; cursor: pointer; }
+        .input-text { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--bg-surface); outline: none; }
+        
+        .next-queue-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x mandatory; }
+        .next-slot {
+            flex: 0 0 auto; width: 100px; height: 100px; border-radius: 50%; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; background: #EFF6FF; border: 3px solid var(--status-waiting);
+            color: var(--status-waiting); font-weight: 900; scroll-snap-align: start; cursor: pointer; transition: all 0.2s;
+        }
+        .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--status-next); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
+        .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
+        .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
+
+        .courts-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
+        @media(min-width: 768px) { .courts-grid { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); } }
+        
+        .court-card { 
+            background: #FFFFFF; border: 3px solid #D1D5DB; 
+            border-radius: 16px; padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
+            display: flex; flex-direction: column; transition: all 0.2s;
+        }
+        .court-card.empty-court { min-height: 200px; justify-content: space-between; }
+        .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
+        .court-title { font-weight: 900; font-size: 1.2rem; } 
+        
+        .team-box { 
+            background: #F8FAFC; border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-width: 0; overflow: hidden;
+        }
+        .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+        .team-box.selected { border-color: #EC4899; background: #FCE7F3; box-shadow: 0 0 12px rgba(236, 72, 153, 0.5); transform: scale(1.02); }
+        
+        .player-name { 
+            font-weight: 900; margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
+            white-space: nowrap; width: 100%; display: block;
+        }
+        
+        .vs-badge { background: transparent; color: var(--text-sub); font-size: 1.8rem; font-weight: 900; margin: 0 8px; }
+        .match-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-grow: 1;}
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;}
+
+        .list-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .list-row:last-child { border-bottom: none; }
+        .member-info { display: flex; align-items: center; gap: 12px; }
+        .status-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+        .dot-playing { background: var(--status-playing); }
+        
+        .member-name { font-weight: 900; font-size: 1.2rem; display: flex; align-items: center;}
+        .member-meta { font-size: 0.9rem; color: var(--text-sub); display: flex; gap: 8px; font-weight: bold;}
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: flex-end; padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+        .modal-content { background: var(--bg-surface); padding: 24px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; animation: slideUp 0.2s ease-out; }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <span style="font-size:3rem;">🏸</span>
+        <span id="loadingMsg">クラウドへ接続中...</span>
+    </div>
+
+    <header>
+        <h1 class="header-title" style="margin:0;">ボード V26 <span class="admin-badge">監督</span></h1>
+        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
+    </header>
+
+    <main>
+        <!-- 1. 試合ビュー -->
+        <div id="view-matches" class="view active">
+            <div class="card" style="padding-bottom: 12px;">
+                <div class="section-title" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ⏩ 待機順
+                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>
+                    </div>
+                    <!-- 凡例 -->
+                    <div style="font-size:0.75rem; color:var(--text-main); display:flex; gap:8px; font-weight:bold;">
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></div>優先</span>
+                    </div>
+                </div>
+                
+                <div class="next-queue-container" id="nextQueueUI"></div>
+            </div>
+
+            <div class="action-grid admin-only">
+                <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ シャッフルIN(一斉)</button>
+                <button class="btn-primary" style="background:#EC4899; color:#FFFFFF;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
+            </div>
+
+            <div class="courts-grid" id="courtsArea"></div>
+        </div>
+
+        <!-- 2. メンバービュー (管理者のみ) -->
+        <div id="view-roster" class="view admin-only">
+            
+            <!-- ① 新規登録 -->
+            <div class="card">
+                <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規登録</h3>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="newMemberName" class="input-text" maxlength="6" placeholder="ニックネーム" style="flex:2;">
+                    <select id="newMemberGender" class="input-text" style="flex:1; padding:0 8px;">
+                        <option value="M">男性</option>
+                        <option value="F">女性</option>
+                    </select>
+                    <button class="btn-primary" style="width:auto; padding:0 24px;" onclick="addMember()">追加</button>
+                </div>
+            </div>
+
+            <!-- ② 名簿（受付前） -->
+            <div class="card">
+                <div class="section-title">名簿</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付</p>
+                <div id="inactiveList"></div>
+            </div>
+
+            <!-- ③ 参加中 -->
+            <div class="card">
+                <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
+                <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (休憩不可)</span>
+                </div>
+                <div id="presentList"></div>
+            </div>
+
+            <!-- ④ 練習の終了（リセット・履歴保存） -->
+            <div class="card">
+                <div class="section-title">練習の終了</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">本日の参加回数を履歴に保存し、全員を名簿に戻します。</p>
+                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:0;" onclick="startNewDay()">🌅 練習を終了する (履歴保存・リセット)</button>
+            </div>
+        </div>
+
+        <!-- 3. 保守ビュー (管理者のみ) -->
+        <div id="view-maintenance" class="view admin-only">
+            
+            <!-- ① 履歴 -->
+            <div class="card">
+                <div class="section-title">📅 履歴</div>
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <select id="historyDateSelect" class="input-text" onchange="renderHistoryDetail()"></select>
+                    <button class="btn-danger" style="width:auto; padding:0 16px;" onclick="deleteHistory()">削除</button>
+                </div>
+                <div id="historyDetailArea"></div>
+            </div>
+
+            <!-- ② コート数設定 -->
+            <div class="card">
+                <div class="section-title">コート数</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;">
+                    <div style="display:flex; align-items:center; gap:16px; width:100%; justify-content:center;">
+                        <button class="btn-secondary" style="padding:12px 24px; font-size:1.5rem;" onclick="changeMaxCourts(-1)">ー</button>
+                        <span id="settingCourtCount" style="font-size:2rem; font-weight:900; width:50px; text-align:center;">6</span>
+                        <button class="btn-secondary" style="padding:12px 24px; font-size:1.5rem;" onclick="changeMaxCourts(1)">＋</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ③ 名簿の編集・削除 -->
+            <div class="card">
+                <div class="section-title">名簿の編集・削除</div>
+                <p style="font-size:0.85rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">※参加中(IN)の人は削除できません。休憩させてから削除してください。</p>
+                <div id="maintenanceRosterArea"></div>
+            </div>
+
+            <!-- ④ 全データ初期化 -->
+            <div class="card" style="margin-top: 32px; border: 2px solid #FECACA;">
+                <div class="section-title" style="color:#DC2626;">データ管理</div>
+                <button class="btn-danger" onclick="confirmResetAll()">⚠️ 全データ初期化 (全削除)</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- タブを3つに統合 -->
+    <nav class="bottom-nav">
+        <a href="?view=matches" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
+            <span class="nav-icon">🏸</span><span>試合</span>
+        </a>
+        <a href="?view=roster" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
+            <span class="nav-icon">👥</span><span>メンバー</span>
+        </a>
+        <a href="?view=maintenance" class="nav-item admin-only" id="nav-maintenance" onclick="routeTo(event, 'maintenance')">
+            <span class="nav-icon">🛠</span><span>保守</span>
+        </a>
+    </nav>
+
+    <div class="modal-overlay admin-only" id="statusModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
+            <p style="font-size:1rem; color:var(--text-sub); margin-bottom:24px; font-weight:bold;">待機から外し、休憩へ移動します。</p>
+            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩</button>
+            <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. Firebase接続設定
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGJFimR_JJT9-q8K2j2Te-868r8Kd9lks",
+            authDomain: "badmin-app-29c62.firebaseapp.com",
+            databaseURL: "https://badmin-app-29c62-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "badmin-app-29c62",
+            storageBucket: "badmin-app-29c62.firebasestorage.app",
+            messagingSenderId: "184592125831",
+            appId: "1:184592125831:web:5c4ca09bdd7de86d54cd22"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        // ==========================================
+        // 2. 権限とルーム（団体）管理のURLパラメータ
+        // ==========================================
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // ★ルーム名（団体ID）は `g` に変更
+        const groupId = urlParams.get('g') || 'default';
+        
+        // ★パスワードは `p` に変更
+        const isAdmin = urlParams.get('p') === 'secret'; 
+
+        if (isAdmin) {
+            document.body.classList.add('admin-mode');
+        } else {
+            document.body.classList.add('viewer-mode');
+        }
+
+        // Firebaseの保存先を団体（g）ごとに分ける
+        const dbRef = firebase.database().ref('badminCloudData/' + groupId);
+        
+        // ==========================================
+        // 3. ルーティング
+        // ==========================================
+        function initRouter() {
+            let view = urlParams.get('view') || 'matches';
+            if (!isAdmin) view = 'matches'; 
+            
+            // 旧バージョンのURL（history等）でアクセスされた場合の救済
+            if (view === 'history' || view === 'settings') view = 'maintenance';
+            
+            activateView(view);
+            window.addEventListener('popstate', (e) => {
+                let stateView = e.state ? e.state.view : (new URLSearchParams(window.location.search).get('view') || 'matches');
+                if (!isAdmin) stateView = 'matches';
+                activateView(stateView);
+            });
+        }
+        
+        function routeTo(event, viewId) {
+            if(event) event.preventDefault();
+            if (!isAdmin && viewId !== 'matches') return;
+            const url = new URL(window.location);
+            url.searchParams.set('view', viewId);
+            window.history.pushState({ view: viewId }, '', url);
+            activateView(viewId);
+        }
+        
+        function activateView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const viewEl = document.getElementById(`view-${viewId}`);
+            const navEl = document.getElementById(`nav-${viewId}`);
+            if (viewEl) viewEl.classList.add('active');
+            if (navEl) navEl.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // ==========================================
+        // 4. データ構造と通信
+        // ==========================================
+        let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
+        const STORAGE_KEY = 'badmin_v26_data_' + groupId;
+        let stateHistory = [];
+        let manualSelectedIds = [];
+        let isInitialLoad = true;
+
+        dbRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                db.players = data.players || [];
+                db.queue = data.queue || [];
+                
+                let fetchedCourts = data.courts || [];
+                fetchedCourts.forEach(c => { if (!c.p) c.p = []; });
+                db.courts = fetchedCourts;
+                
+                db.maxCourts = data.maxCourts || 6;
+                db.dailyCounter = data.dailyCounter || 1;
+                db.history = data.history || {};
+                
+                if (isInitialLoad) {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    isInitialLoad = false;
+                }
+                manualSelectedIds = manualSelectedIds.filter(id => db.queue.includes(id));
+                render();
+            } else {
+                if (isAdmin) {
+                    adjustCourts();
+                    saveToCloud();
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    isInitialLoad = false;
+                    render();
+                } else {
+                    document.getElementById('loadingMsg').innerText = "データがありません。\n監督の初期設定をお待ちください。";
+                }
+            }
+        });
+
+        window.onload = function() {
+            initRouter();
+            let saved = localStorage.getItem(STORAGE_KEY);
+            if (saved && !isInitialLoad) {
+                // クラウド優先
+            } else if (saved && isInitialLoad && isAdmin) {
+                try {
+                    let parsed = JSON.parse(saved);
+                    if (parsed.players) db.players = parsed.players;
+                    if (parsed.queue) db.queue = parsed.queue;
+                    if (parsed.courts) {
+                        parsed.courts.forEach(c => { if(!c.p) c.p = []; });
+                        db.courts = parsed.courts;
+                    }
+                    if (parsed.maxCourts) db.maxCourts = parsed.maxCourts;
+                    if (parsed.dailyCounter) db.dailyCounter = parsed.dailyCounter;
+                    if (parsed.history) db.history = parsed.history;
+                    adjustCourts();
+                } catch(e) {}
+            }
+            updateUndoButton();
+        };
+
+        function saveToCloud() {
+            if (isAdmin) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
+                dbRef.set(db);
+            }
+        }
+
+        function saveStateToHistory() {
+            stateHistory.push(JSON.stringify(db));
+            if (stateHistory.length > 20) stateHistory.shift();
+            updateUndoButton();
+        }
+
+        function undoAction() {
+            if (!isAdmin) return;
+            if (stateHistory.length > 0) {
+                db = JSON.parse(stateHistory.pop());
+                db.courts.forEach(c => { if(!c.p) c.p = []; });
+                manualSelectedIds = [];
+                updateUndoButton();
+                saveToCloud();
+            }
+        }
+
+        function updateUndoButton() { 
+            if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0; 
+        }
+        
+        function getPlayerDisplayName(p) {
+            return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name;
+        }
+
+        function formatNameHTML(p) { 
+            let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
+            let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
+            return `<span class="${colorClass}">${numHtml}${p.name}</span>`;
+        }
+        
+        function getDynamicFontSize(text) {
+            if (!text) return "";
+            let len = text.length;
+            if (len <= 4) return 'font-size: clamp(1.2rem, 3.5vw + 0.3rem, 2.0rem);';
+            if (len <= 5) return 'font-size: clamp(1.0rem, 3.0vw + 0.2rem, 1.6rem);';
+            if (len <= 7) return 'font-size: clamp(0.85rem, 2.5vw + 0.1rem, 1.3rem);';
+            return 'font-size: clamp(0.7rem, 2vw, 1.0rem);';
+        }
+
+        // ==========================================
+        // 5. アクション関数群
+        // ==========================================
+        
+        function confirmResetAll() {
+            if (!isAdmin) return;
+            let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
+            if (input === "削除") {
+                db = { players: [], queue: [], courts: [], maxCourts: db.maxCourts, dailyCounter: 1, history: {} };
+                stateHistory = [];
+                manualSelectedIds = [];
+                adjustCourts();
+                saveToCloud();
+                alert("初期化が完了しました。");
+            } else if (input !== null) {
+                alert("入力が一致しません。初期化をキャンセルしました。");
+            }
+        }
+
+        function changeMaxCourts(delta) {
+            if (!isAdmin) return;
+            let n = db.maxCourts + delta;
+            if (delta < 0) {
+                let lastCourt = db.courts[db.courts.length - 1];
+                if (lastCourt && lastCourt.p && lastCourt.p.length > 0) return; 
+            }
+            if (n >= 1 && n <= 12) {
+                saveStateToHistory();
+                db.maxCourts = n;
+                adjustCourts();
+                saveToCloud();
+            }
+        }
+
+        function adjustCourts() {
+            while (db.courts.length < db.maxCourts) db.courts.push({ id: db.courts.length + 1, p: [], selected: false });
+            while (db.courts.length > db.maxCourts) db.courts.pop();
+        }
+
+        function startNewDay() {
+            if (!isAdmin) return;
+            if (confirm("本日の練習を終了し、全員をリセットしますか？\n（参加履歴の保存も行えます）")) {
+                let dateStr = new Date().toISOString().split('T')[0];
+                let promptDate = prompt("履歴を保存する日付を入力してください。\n（※保存しない場合は空欄のままOKを押してください）", dateStr);
+                
+                if (promptDate !== null) { 
+                    if (promptDate.trim() !== "") {
+                        if (!db.history) db.history = {};
+                        let records = {};
+                        db.players.forEach(p => {
+                            if (p.dailyNum) { 
+                                records[p.id] = { name: p.name, playCount: p.playCount, gender: p.gender, dailyNum: p.dailyNum };
+                            }
+                        });
+                        db.history[promptDate] = records;
+                    }
+                    
+                    saveStateToHistory();
+                    db.dailyCounter = 1;
+                    db.players.forEach(p => { p.status = 'inactive'; p.playCount = 0; p.dailyNum = null; });
+                    db.queue = [];
+                    db.courts.forEach(c => { c.p = []; c.selected = false; });
+                    manualSelectedIds = [];
+                    saveToCloud();
+                    alert("練習を終了し、全員をリセットしました。");
+                }
+            }
+        }
+
+        function addMember() {
+            if (!isAdmin) return;
+            let input = document.getElementById('newMemberName');
+            let gender = document.getElementById('newMemberGender').value;
+            let name = input.value.trim();
+            if (!name) return;
+            if (db.players.some(p => p.name === name)) return alert("既に登録されています。");
+            
+            saveStateToHistory();
+            db.players.push({ id: Date.now(), name: name, gender: gender, status: 'inactive', playCount: 0, dailyNum: null });
+            input.value = "";
+            saveToCloud();
+        }
+
+        function checkIn(id) {
+            if (!isAdmin) return;
+            let player = db.players.find(p => p.id === id);
+            if (!player) return;
+            saveStateToHistory();
+            if (!player.dailyNum) {
+                db.dailyCounter = db.dailyCounter || 1;
+                player.dailyNum = db.dailyCounter++;
+            }
+            player.status = 'waiting';
+            db.queue.push(id); 
+            saveToCloud();
+        }
+
+        function openPlayerMenu(id) {
+            if (!isAdmin) return;
+            let player = db.players.find(p => p.id === id);
+            if (!player) return;
+            if (player.status === 'playing') return alert("試合中です。先にOUTしてください。");
+            currentModalPlayerId = id;
+            document.getElementById('modalPlayerName').innerHTML = formatNameHTML(player);
+            document.getElementById('statusModal').style.display = 'flex';
+        }
+
+        function closeModal(e) {
+            if(e && e.target !== document.getElementById('statusModal')) return;
+            document.getElementById('statusModal').style.display = 'none';
+            currentModalPlayerId = null;
+        }
+
+        function execStatusChange(newStatus) {
+            if (!isAdmin) return;
+            let player = db.players.find(p => p.id === currentModalPlayerId);
+            if (player) {
+                saveStateToHistory();
+                db.queue = db.queue.filter(q => q !== player.id);
+                player.status = newStatus;
+                if (newStatus === 'waiting') db.queue.push(player.id);
+            }
+            document.getElementById('statusModal').style.display = 'none';
+            saveToCloud();
+        }
+
+        function endCourt(idx) {
+            if (!isAdmin) return;
+            saveStateToHistory();
+            let court = db.courts[idx];
+            let leaving = [...(court.p || [])].sort(() => Math.random() - 0.5);
+            leaving.forEach(id => {
+                let player = db.players.find(p => p.id === id);
+                if (player) { player.status = 'waiting'; db.queue.push(id); }
+            });
+            court.p = []; court.selected = false;
+            saveToCloud();
+        }
+
+        function toggleManualSelect(id) {
+            if (!isAdmin) return;
+            if (manualSelectedIds.includes(id)) {
+                manualSelectedIds = manualSelectedIds.filter(x => x !== id);
+            } else {
+                if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
+                else alert("優先INは最大4名までです。");
+            }
+            render(); 
+        }
+
+        function fillCourt(idx) {
+            if (!isAdmin) return;
+            
+            let court = db.courts[idx];
+            let needed = 4;
+            
+            let selectedPlayersToEnter = manualSelectedIds.slice(0, needed);
+            let remainingNeeded = needed - selectedPlayersToEnter.length;
+            
+            let unselectedQueue = db.queue.filter(id => !selectedPlayersToEnter.includes(id));
+            
+            if (unselectedQueue.length < remainingNeeded) {
+                return alert("人数が足りません。");
+            }
+
+            saveStateToHistory();
+            
+            let additional = unselectedQueue.splice(0, remainingNeeded);
+            let finalPlayers = [...selectedPlayersToEnter, ...additional];
+            
+            db.queue = unselectedQueue;
+            
+            finalPlayers.forEach(id => {
+                let p = db.players.find(pl => pl.id === id);
+                p.status = 'playing'; p.playCount++; court.p.push(id);
+            });
+            
+            court.p.sort(() => Math.random() - 0.5);
+            
+            manualSelectedIds = manualSelectedIds.filter(id => !finalPlayers.includes(id));
+            saveToCloud();
+        }
+
+        function fillAllEmptyCourts() {
+            if (!isAdmin) return;
+            if (manualSelectedIds.length > 0) {
+                return alert("優先選択中です。解除してから一斉INしてください。");
+            }
+            
+            let emptyCourts = db.courts.filter(c => !c.p || c.p.length === 0);
+            if (emptyCourts.length === 0) return alert("空きコートがありません。");
+            let courtsToFill = Math.min(emptyCourts.length, Math.floor(db.queue.length / 4));
+            if (courtsToFill === 0) return alert("人数が足りません。");
+
+            saveStateToHistory();
+            db.queue.sort(() => Math.random() - 0.5);
+            let playersToAssign = db.queue.splice(0, courtsToFill * 4);
+            
+            for (let i = 0; i < courtsToFill; i++) {
+                let court = emptyCourts[i];
+                let group = playersToAssign.slice(i * 4, i * 4 + 4);
+                group.forEach(id => {
+                    let p = db.players.find(pl => pl.id === id);
+                    p.status = 'playing'; p.playCount++; court.p.push(id);
+                });
+            }
+            saveToCloud();
+        }
+
+        function toggleCheck(idx, checked) { 
+            if(!isAdmin) return; 
+            db.courts[idx].selected = checked; 
+            saveToCloud(); 
+        }
+
+        function reshuffleSelectedCourts() {
+            if (!isAdmin) return;
+            let selected = db.courts.filter(c => c.selected && c.p && c.p.length === 4);
+            if (selected.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
+
+            saveStateToHistory();
+            let targetPlayers = [];
+            selected.forEach(c => { targetPlayers.push(...c.p); c.p = []; c.selected = false; });
+            targetPlayers.sort(() => Math.random() - 0.5);
+            selected.forEach((c, i) => { c.p = targetPlayers.slice(i * 4, i * 4 + 4); });
+            saveToCloud();
+        }
+
+        // ==========================================
+        // 保守・履歴管理
+        // ==========================================
+        
+        function renderHistoryOptions() {
+            let select = document.getElementById('historyDateSelect');
+            if (!select) return;
+            if (!db.history || Object.keys(db.history).length === 0) {
+                select.innerHTML = '<option value="">なし</option>';
+                document.getElementById('historyDetailArea').innerHTML = '';
+                return;
+            }
+            let dates = Object.keys(db.history).sort().reverse();
+            let currentVal = select.value;
+            select.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
+            if (dates.includes(currentVal)) select.value = currentVal;
+            renderHistoryDetail();
+        }
+
+        function renderHistoryDetail() {
+            let date = document.getElementById('historyDateSelect').value;
+            let area = document.getElementById('historyDetailArea');
+            if (!date || !db.history[date]) { area.innerHTML = ''; return; }
+            
+            let records = db.history[date];
+            let arr = Object.keys(records).map(id => ({id: id, ...records[id]}));
+            arr.sort((a,b) => (a.dailyNum || 0) - (b.dailyNum || 0)); 
+            
+            let html = '';
+            arr.forEach(r => {
+                html += `
+                <div class="list-row">
+                    <div class="member-name">${formatNameHTML(r)}</div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', -1)">-</button>
+                        <span style="font-size:1.4rem; font-weight:900; width:30px; text-align:center;">${r.playCount}</span>
+                        <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', 1)">+</button>
+                    </div>
+                </div>`;
+            });
+            area.innerHTML = html;
+        }
+
+        function updateHistoryPlayCount(date, playerId, delta) {
+            if(!db.history[date] || !db.history[date][playerId]) return;
+            db.history[date][playerId].playCount += delta;
+            if(db.history[date][playerId].playCount < 0) db.history[date][playerId].playCount = 0;
+            saveToCloud(); 
+        }
+
+        function deleteHistory() {
+            let date = document.getElementById('historyDateSelect').value;
+            if (!date) return;
+            if (confirm(`${date} の履歴を削除しますか？`)) {
+                delete db.history[date];
+                saveToCloud();
+            }
+        }
+        
+        // 名簿の編集・削除機能
+        function renderMaintenanceRoster() {
+            let area = document.getElementById('maintenanceRosterArea');
+            if (!area) return;
+            
+            let html = '';
+            // 名前順などにせず、登録順（配列順）で表示
+            db.players.forEach(p => {
+                let statusBadge = p.status !== 'inactive' 
+                    ? '<span style="color:#10B981; font-size:0.8rem; font-weight:bold; margin-left:8px;">[IN]</span>' 
+                    : '';
+                
+                let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
+                
+                html += `
+                <div class="list-row">
+                    <div class="member-name"><span class="${colorClass}">${p.name}</span> ${statusBadge}</div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" style="padding:6px 12px; font-size:0.9rem;" onclick="editMember(${p.id})">編集</button>
+                        <button class="btn-danger-small" style="padding:6px 12px; font-size:0.9rem;" onclick="deleteMember(${p.id})">削除</button>
+                    </div>
+                </div>`;
+            });
+            if (html === '') html = '<div style="color:var(--text-sub); text-align:center;">名簿は空です</div>';
+            area.innerHTML = html;
+        }
+        
+        function editMember(id) {
+            if(!isAdmin) return;
+            let p = db.players.find(x => x.id === id);
+            if(!p) return;
+            let newName = prompt("新しいニックネームを入力してください(6文字以内)", p.name);
+            if(newName !== null) {
+                newName = newName.trim();
+                if(newName && newName !== p.name) {
+                    saveStateToHistory();
+                    p.name = newName;
+                    saveToCloud();
+                }
+            }
+        }
+        
+        function deleteMember(id) {
+            if(!isAdmin) return;
+            let p = db.players.find(x => x.id === id);
+            if(!p) return;
+            if(p.status !== 'inactive') {
+                return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩（OUT）」させてください。");
+            }
+            if(confirm(`「${p.name}」さんを名簿から完全に削除しますか？`)) {
+                saveStateToHistory();
+                db.players = db.players.filter(x => x.id !== id);
+                saveToCloud();
+            }
+        }
+
+        // ==========================================
+        // 6. UIの描画
+        // ==========================================
+        function render() {
+            if (isAdmin) {
+                document.getElementById('settingCourtCount').innerText = db.maxCourts;
+
+                let inactiveHtml = "";
+                let presentHtml = "";
+                let presentCount = 0;
+
+                let presentPlayers = db.players.filter(p => p.status !== 'inactive');
+                presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
+
+                presentPlayers.forEach(p => {
+                    let isNext = (p.status === 'waiting' && db.queue.indexOf(p.id) < 4 && db.queue.indexOf(p.id) !== -1);
+                    let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
+                    
+                    let dotHtml = p.status === 'playing' 
+                        ? '<div class="status-dot dot-playing"></div>' 
+                        : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
+                    
+                    presentHtml += `
+                        <div class="list-row" onclick="openPlayerMenu(${p.id})">
+                            <div class="member-info">${dotHtml}<div class="member-name">${formatNameHTML(p)}</div></div>
+                            <div class="member-meta"><span>${statusTxt}</span><span>(${p.playCount}回)</span></div>
+                        </div>`;
+                    presentCount++;
+                });
+
+                db.players.filter(p => p.status === 'inactive').forEach(p => {
+                    let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
+                    
+                    inactiveHtml += `
+                        <div class="list-row" onclick="checkIn(${p.id})">
+                            <div class="member-info"><div style="width:14px; height:14px; flex-shrink:0;"></div><div class="member-name">${formatNameHTML(p)}${breakBadge}</div></div>
+                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ 受付</span></div>
+                        </div>`;
+                });
+
+                document.getElementById('inactiveList').innerHTML = inactiveHtml;
+                document.getElementById('presentList').innerHTML = presentHtml;
+                document.getElementById('activeCount').innerText = presentCount;
+                
+                renderHistoryOptions();
+                renderMaintenanceRoster();
+            }
+
+            // NEXT待機列全体
+            let nextHtml = "";
+            if (db.queue.length > 0) {
+                db.queue.forEach((id, index) => {
+                    let p = db.players.find(pl => pl.id === id);
+                    if (!p) return;
+                    let isTop4 = index < 4;
+                    let isSelected = isAdmin && manualSelectedIds.includes(id);
+                    let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "");
+                    
+                    nextHtml += `
+                        <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
+                            <div class="next-slot-name">${formatNameHTML(p)}</div>
+                            <div style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
+                        </div>`;
+                });
+            }
+            document.getElementById('nextQueueUI').innerHTML = nextHtml;
+
+            // コートUI 
+            let courtsHtml = "";
+            db.courts.forEach((c, idx) => {
+                if (c.p && c.p.length === 4) {
+                    let p1 = db.players.find(pl => pl.id === c.p[0]);
+                    let p2 = db.players.find(pl => pl.id === c.p[1]);
+                    let p3 = db.players.find(pl => pl.id === c.p[2]);
+                    let p4 = db.players.find(pl => pl.id === c.p[3]);
+                    
+                    let p1Text = p1 ? getPlayerDisplayName(p1) : "";
+                    let p2Text = p2 ? getPlayerDisplayName(p2) : "";
+                    let p3Text = p3 ? getPlayerDisplayName(p3) : "";
+                    let p4Text = p4 ? getPlayerDisplayName(p4) : "";
+
+                    let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
+
+                    courtsHtml += `
+                        <div class="court-card">
+                            <div class="court-header">
+                                <span class="court-title" style="color:var(--text-main);">コート <span style="font-size:1.4em;">${c.id}</span></span>
+                            </div>
+                            <div class="match-row">
+                                <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
+                                    <div class="player-name" style="${getDynamicFontSize(p1Text)}">${p1 ? formatNameHTML(p1) : ""}</div>
+                                    <div class="player-name" style="${getDynamicFontSize(p2Text)}">${p2 ? formatNameHTML(p2) : ""}</div>
+                                </div>
+                                <div class="vs-badge">×</div>
+                                <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
+                                    <div class="player-name" style="${getDynamicFontSize(p3Text)}">${p3 ? formatNameHTML(p3) : ""}</div>
+                                    <div class="player-name" style="${getDynamicFontSize(p4Text)}">${p4 ? formatNameHTML(p4) : ""}</div>
+                                </div>
+                            </div>
+                            <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">⏹ OUT</button>
+                        </div>`;
+                } else {
+                    courtsHtml += `
+                        <div class="court-card empty-court">
+                            <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${c.id}</span></span></div>
+                            <div style="flex-grow:1; min-height:80px;"></div>
+                            <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>
+                        </div>`;
+                }
+            });
+            document.getElementById('courtsArea').innerHTML = courtsHtml;
+        }
+    </script>
+</body>
+</html>
