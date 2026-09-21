@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V26(クラウド版)</title>
+    <title>ボード V26(クラウド版・マルチ対応)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -296,7 +296,7 @@
         // ★ルーム名（団体ID）は `g` に変更
         const groupId = urlParams.get('g') || 'default';
         
-        // ★パスワードは `p` に変更
+        // ★パスワードは `p` (現在は 'secret' で固定)
         const isAdmin = urlParams.get('p') === 'secret'; 
 
         if (isAdmin) {
@@ -305,8 +305,8 @@
             document.body.classList.add('viewer-mode');
         }
 
-        // Firebaseの保存先を団体（g）ごとに分ける
-        const dbRef = firebase.database().ref('badminCloudData/' + groupId);
+        // ★V25との干渉を防ぐため、保存先を `badminCloudData_V26` に変更し、団体（g）ごとに分ける
+        const dbRef = firebase.database().ref('badminCloudData_V26/' + groupId);
         
         // ==========================================
         // 3. ルーティング
@@ -750,7 +750,6 @@
             if (!area) return;
             
             let html = '';
-            // 名前順などにせず、登録順（配列順）で表示
             db.players.forEach(p => {
                 let statusBadge = p.status !== 'inactive' 
                     ? '<span style="color:#10B981; font-size:0.8rem; font-weight:bold; margin-left:8px;">[IN]</span>' 
