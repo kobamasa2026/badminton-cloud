@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード V19(クラウド版)</title>
+    <title>ボード V20(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -14,7 +14,6 @@
             --primary: #4F46E5; --primary-dark: #4338CA;
             --bg-base: #F3F4F6; --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
-            /* 待機の色をオレンジ(#F59E0B)からブルー(#3B82F6)へ変更して重複を解消 */
             --status-waiting: #3B82F6; 
             --status-next: #8B5CF6; 
             --status-playing: #10B981; --status-inactive: #9CA3AF;
@@ -94,25 +93,27 @@
             border-radius: 16px; padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.08); 
             display: flex; flex-direction: column; transition: all 0.2s;
         }
+        .court-card.empty-court { min-height: 200px; justify-content: space-between; }
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
-        .court-title { font-weight: 900; font-size: 1.6rem; color: var(--text-main); letter-spacing: 1px;}
+        .court-title { font-weight: 900; font-size: 1.2rem; color: var(--text-sub);}
         
         .team-box { 
-            background: var(--bg-base); border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;
+            background: #F8FAFC; border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             min-width: 0; overflow: hidden;
         }
         .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        .team-box.selected { border-color: #F59E0B; background: #FEF3C7; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.02); }
+        /* 再抽選用の選択色はライトブルーにして優先(オレンジ)と重複回避 */
+        .team-box.selected { border-color: #3B82F6; background: #DBEAFE; box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); transform: scale(1.02); }
         
-        /* プレイヤー名の共通設定（可変サイズはJSで付与） */
         .player-name { 
             font-weight: 900; margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
             width: 100%; display: block;
         }
         
-        .vs-badge { background: var(--text-main); color: white; font-size: 1.1rem; font-weight: 900; padding: 8px 16px; border-radius: 16px; margin: 0 12px; }
+        /* VSをシンプルな「×」に変更 */
+        .vs-badge { background: transparent; color: var(--text-sub); font-size: 1.8rem; font-weight: 900; margin: 0 8px; }
         .match-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-grow: 1;}
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;}
 
@@ -139,7 +140,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V19 <span class="admin-badge">監督モード</span></h1>
+        <h1 class="header-title">ボード V20 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -147,13 +148,12 @@
         <!-- 1. 試合ビュー -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
-                <!-- タイトルと凡例を横並びに配置 -->
                 <div class="section-title" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        ⏩ 待機列 全体
-                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先選択</span>
+                        ⏩ 待機
+                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>
                     </div>
-                    <!-- 凡例をここに移動（女性の凡例は削除） -->
+                    <!-- 凡例 -->
                     <div style="font-size:0.75rem; color:var(--text-main); display:flex; gap:8px; font-weight:bold;">
                         <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-waiting);"></div>待機</span>
                         <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);box-shadow:0 0 4px var(--status-next);"></div>NEXT</span>
@@ -165,10 +165,9 @@
                 <div class="next-queue-container" id="nextQueueUI"></div>
             </div>
 
-            <!-- 管理者専用アクション -->
             <div class="action-grid admin-only">
-                <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ 一斉補充(シャッフル)</button>
-                <button class="btn-primary" style="background:#6366F1;" onclick="reshuffleSelectedCourts()">🔁 選択再抽選</button>
+                <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ 一斉IN(シャッフル)</button>
+                <button class="btn-primary" style="background:#6366F1;" onclick="reshuffleSelectedCourts()">🔁 選択シャッフル</button>
             </div>
 
             <div class="courts-grid" id="courtsArea"></div>
@@ -177,7 +176,7 @@
         <!-- 2. メンバービュー (管理者のみ) -->
         <div id="view-roster" class="view admin-only">
             <div class="card">
-                <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規メンバー登録</h3>
+                <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規登録</h3>
                 <div style="display:flex; gap:8px;">
                     <input type="text" id="newMemberName" class="input-text" maxlength="6" placeholder="ニックネーム" style="flex:2;">
                     <select id="newMemberGender" class="input-text" style="flex:1; padding:0 8px;">
@@ -189,20 +188,13 @@
             </div>
 
             <div class="card">
-                <div class="section-title">参加中メンバー (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
-                <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
-                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-waiting);"></div>待機</span>
-                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-next);box-shadow:0 0 4px var(--status-next);"></div>NEXT</span>
-                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中</span>
-                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-inactive);"></div>休憩</span>
-                </div>
+                <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div id="presentList"></div>
-                <div style="text-align:center; padding:16px; color:var(--text-sub); display:none;" id="emptyPresent">参加中はいません</div>
             </div>
 
             <div class="card">
-                <div class="section-title">名簿・未受付エリア</div>
-                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップして待機列へ移動(番号付与)</p>
+                <div class="section-title">名簿</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップでIN</p>
                 <div id="inactiveList"></div>
             </div>
         </div>
@@ -210,7 +202,7 @@
         <!-- 3. 履歴ビュー (管理者のみ) -->
         <div id="view-history" class="view admin-only">
             <div class="card">
-                <div class="section-title">📅 参加履歴と回数修正</div>
+                <div class="section-title">📅 履歴</div>
                 <div style="display:flex; gap:8px; margin-bottom:16px;">
                     <select id="historyDateSelect" class="input-text" onchange="renderHistoryDetail()"></select>
                     <button class="btn-danger" style="width:auto; padding:0 16px;" onclick="deleteHistory()">削除</button>
@@ -222,32 +214,30 @@
         <!-- 4. 設定ビュー (管理者のみ) -->
         <div id="view-settings" class="view admin-only">
             <div class="card">
-                <div class="section-title">コート設定</div>
+                <div class="section-title">コート数</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;">
-                    <span style="font-weight:bold; font-size:1.1rem;">使用するコート数</span>
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <button class="btn-secondary" style="padding:12px 20px; font-size:1.2rem;" onclick="changeMaxCourts(-1)">ー</button>
-                        <span id="settingCourtCount" style="font-size:1.5rem; font-weight:900;">6</span>
-                        <button class="btn-secondary" style="padding:12px 20px; font-size:1.2rem;" onclick="changeMaxCourts(1)">＋</button>
+                    <div style="display:flex; align-items:center; gap:16px; width:100%; justify-content:center;">
+                        <button class="btn-secondary" style="padding:12px 24px; font-size:1.5rem;" onclick="changeMaxCourts(-1)">ー</button>
+                        <span id="settingCourtCount" style="font-size:2rem; font-weight:900; width:50px; text-align:center;">6</span>
+                        <button class="btn-secondary" style="padding:12px 24px; font-size:1.5rem;" onclick="changeMaxCourts(1)">＋</button>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="section-title">データ管理・共有</div>
+                <div class="section-title">データ管理</div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom: 24px;">
-                    <button class="btn-secondary" style="padding:16px; font-size:1rem;" onclick="exportRoster()">📤 名簿保存 (共有)</button>
-                    <button class="btn-secondary" style="padding:16px; font-size:1rem;" onclick="document.getElementById('importFile').click()">📥 名簿読込</button>
+                    <button class="btn-secondary" style="padding:16px; font-size:1rem;" onclick="exportRoster()">📤 名簿保存</button>
+                    <button class="btn-secondary" style="padding:16px; font-size:1rem;" onclick="document.getElementById('importFile').click()">📥 読込</button>
                     <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importRoster(event)">
                 </div>
                 <hr style="border:none; border-top:2px solid var(--border); margin:24px 0;">
-                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:16px;" onclick="startNewDay()">🌅 練習を始める (本日リセット/履歴保存)</button>
-                <button class="btn-danger" onclick="resetAllData()">⚠️ アプリ初期化 (名簿も削除)</button>
+                <button class="btn-danger" style="background:#FEF2F2; color:#DC2626; border:2px solid #FECACA; margin-bottom:16px;" onclick="startNewDay()">🌅 リセット・履歴保存</button>
+                <button class="btn-danger" onclick="resetAllData()">⚠️ 初期化 (全削除)</button>
             </div>
         </div>
     </main>
 
-    <!-- ボトムナビゲーション -->
     <nav class="bottom-nav">
         <a href="?view=matches" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
@@ -263,12 +253,11 @@
         </a>
     </nav>
 
-    <!-- モーダル -->
     <div class="modal-overlay admin-only" id="statusModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
-            <p style="font-size:1rem; color:var(--text-sub); margin-bottom:24px; font-weight:bold;">このメンバーを待機列から外し、休憩エリアへ移動します。</p>
-            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩・帰宅する</button>
+            <p style="font-size:1rem; color:var(--text-sub); margin-bottom:24px; font-weight:bold;">待機から外し、休憩へ移動します。</p>
+            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩・OUT</button>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeModal()">キャンセル</button>
         </div>
     </div>
@@ -336,7 +325,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v19_data';
+        const STORAGE_KEY = 'badmin_v20_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -425,20 +414,26 @@
             if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0; 
         }
         
-        function formatName(p) { 
-            let nameStr = p.dailyNum ? `${p.dailyNum}: ${p.name}` : p.name;
+        // 文字数計算用（プレーンテキスト）
+        function getPlayerDisplayName(p) {
+            return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name;
+        }
+
+        // 描画用（1に色をつける）
+        function formatNameHTML(p) { 
+            let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:0.9em; margin-right:2px;">${p.dailyNum}</span>` : "";
             let colorClass = p.gender === 'F' ? 'gender-F' : 'gender-M';
-            return `<span class="${colorClass}">${nameStr}</span>`;
+            return `<span class="${colorClass}">${numHtml}${p.name}</span>`;
         }
         
-        // ★追加: 文字数に応じてフォントサイズを可変にする関数
+        // 文字数に応じてフォントサイズを可変
         function getDynamicFontSize(text) {
             if (!text) return "";
             let len = text.length;
             if (len <= 4) return 'font-size: clamp(1.4rem, 4vw + 0.5rem, 2.2rem);';
-            if (len <= 6) return 'font-size: clamp(1.2rem, 3.5vw + 0.4rem, 1.8rem);';
-            if (len <= 8) return 'font-size: clamp(1rem, 3vw + 0.3rem, 1.4rem);';
-            return 'font-size: clamp(0.85rem, 2.5vw + 0.2rem, 1.2rem);';
+            if (len <= 5) return 'font-size: clamp(1.2rem, 3.5vw + 0.4rem, 1.8rem);';
+            if (len <= 7) return 'font-size: clamp(1rem, 3vw + 0.3rem, 1.4rem);';
+            return 'font-size: clamp(0.85rem, 2.5vw + 0.2rem, 1.1rem);';
         }
 
         // ==========================================
@@ -466,9 +461,9 @@
 
         function startNewDay() {
             if (!isAdmin) return;
-            if (confirm("名簿は残したまま、本日の状態をリセットし、参加履歴を保存しますか？")) {
+            if (confirm("本日をリセットし履歴を保存しますか？")) {
                 let dateStr = new Date().toISOString().split('T')[0];
-                let promptDate = prompt("保存する日付を入力してください（不要な場合はそのままOKまたはキャンセル）", dateStr);
+                let promptDate = prompt("保存する日付を入力", dateStr);
                 
                 if (promptDate !== null) { 
                     if (promptDate.trim() !== "") {
@@ -496,7 +491,7 @@
         
         function resetAllData() {
             if (!isAdmin) return;
-            if (confirm("【警告】名簿や履歴を含むすべてのデータを完全に削除します。よろしいですか？")) {
+            if (confirm("全データを初期化しますか？")) {
                 db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
                 stateHistory = [];
                 manualSelectedIds = [];
@@ -537,9 +532,9 @@
             if (!isAdmin) return;
             let player = db.players.find(p => p.id === id);
             if (!player) return;
-            if (player.status === 'playing') return alert("現在試合中です。先にコートを空けてください。");
+            if (player.status === 'playing') return alert("試合中です。先にOUTしてください。");
             currentModalPlayerId = id;
-            document.getElementById('modalPlayerName').innerHTML = formatName(player) + " さん";
+            document.getElementById('modalPlayerName').innerHTML = formatNameHTML(player);
             document.getElementById('statusModal').style.display = 'flex';
         }
 
@@ -581,7 +576,7 @@
                 manualSelectedIds = manualSelectedIds.filter(x => x !== id);
             } else {
                 if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
-                else alert("優先できるのは1回に最大4名までです。");
+                else alert("優先INは最大4名までです。");
             }
             render(); 
         }
@@ -598,7 +593,7 @@
             let unselectedQueue = db.queue.filter(id => !selectedPlayersToEnter.includes(id));
             
             if (unselectedQueue.length < remainingNeeded) {
-                return alert(`待機人数が足りません。（あと${remainingNeeded - unselectedQueue.length}名必要です）`);
+                return alert("人数が足りません。");
             }
 
             saveStateToHistory();
@@ -622,13 +617,13 @@
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
             if (manualSelectedIds.length > 0) {
-                return alert("優先選択中のメンバーがいます。\n個別のコートに入れるか、選択を一度解除してから一斉補充してください。");
+                return alert("優先選択中です。解除してから一斉INしてください。");
             }
             
             let emptyCourts = db.courts.filter(c => !c.p || c.p.length === 0);
             if (emptyCourts.length === 0) return alert("空きコートがありません。");
             let courtsToFill = Math.min(emptyCourts.length, Math.floor(db.queue.length / 4));
-            if (courtsToFill === 0) return alert("待機人数が足りません。");
+            if (courtsToFill === 0) return alert("人数が足りません。");
 
             saveStateToHistory();
             db.queue.sort(() => Math.random() - 0.5);
@@ -654,7 +649,7 @@
         function reshuffleSelectedCourts() {
             if (!isAdmin) return;
             let selected = db.courts.filter(c => c.selected && c.p && c.p.length === 4);
-            if (selected.length === 0) return alert("再抽選したいコートの「チーム枠（色のついた箱）」をタップして選択状態にしてください。");
+            if (selected.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
 
             saveStateToHistory();
             let targetPlayers = [];
@@ -668,8 +663,8 @@
             let select = document.getElementById('historyDateSelect');
             if (!select) return;
             if (!db.history || Object.keys(db.history).length === 0) {
-                select.innerHTML = '<option value="">履歴なし</option>';
-                document.getElementById('historyDetailArea').innerHTML = '<div style="color:var(--text-sub); text-align:center;">保存された履歴はありません</div>';
+                select.innerHTML = '<option value="">なし</option>';
+                document.getElementById('historyDetailArea').innerHTML = '';
                 return;
             }
             let dates = Object.keys(db.history).sort().reverse();
@@ -692,7 +687,7 @@
             arr.forEach(r => {
                 html += `
                 <div class="list-row">
-                    <div class="member-name">${formatName(r)}</div>
+                    <div class="member-name">${formatNameHTML(r)}</div>
                     <div style="display:flex; align-items:center; gap:12px;">
                         <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', -1)">-</button>
                         <span style="font-size:1.4rem; font-weight:900; width:30px; text-align:center;">${r.playCount}</span>
@@ -713,7 +708,7 @@
         function deleteHistory() {
             let date = document.getElementById('historyDateSelect').value;
             if (!date) return;
-            if (confirm(`${date} の履歴を完全に削除しますか？`)) {
+            if (confirm(`${date} の履歴を削除しますか？`)) {
                 delete db.history[date];
                 saveToCloud();
             }
@@ -740,7 +735,7 @@
                     
                     presentHtml += `
                         <div class="list-row" onclick="openPlayerMenu(${p.id})">
-                            <div class="member-info"><div class="status-dot ${dotClass}"></div><div class="member-name">${formatName(p)}</div></div>
+                            <div class="member-info"><div class="status-dot ${dotClass}"></div><div class="member-name">${formatNameHTML(p)}</div></div>
                             <div class="member-meta"><span>${statusTxt}</span><span>(${p.playCount}回)</span></div>
                         </div>`;
                     presentCount++;
@@ -749,24 +744,21 @@
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
-                            <div class="member-info"><div class="status-dot dot-inactive"></div><div class="member-name">${formatName(p)}</div></div>
-                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ 受付</span></div>
+                            <div class="member-info"><div class="status-dot dot-inactive"></div><div class="member-name">${formatNameHTML(p)}</div></div>
+                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ IN</span></div>
                         </div>`;
                 });
 
-                document.getElementById('inactiveList').innerHTML = inactiveHtml || '<div style="color:var(--text-sub); text-align:center; padding:16px;">名簿は空です</div>';
+                document.getElementById('inactiveList').innerHTML = inactiveHtml;
                 document.getElementById('presentList').innerHTML = presentHtml;
                 document.getElementById('activeCount').innerText = presentCount;
-                document.getElementById('emptyPresent').style.display = presentCount === 0 ? 'block' : 'none';
                 
                 renderHistoryOptions();
             }
 
             // NEXT待機列全体
             let nextHtml = "";
-            if (db.queue.length === 0) {
-                nextHtml = `<div style="padding: 24px; color: var(--text-sub); width:100%; text-align:center;">待機中はいません</div>`;
-            } else {
+            if (db.queue.length > 0) {
                 db.queue.forEach((id, index) => {
                     let p = db.players.find(pl => pl.id === id);
                     if (!p) return;
@@ -776,7 +768,7 @@
                     
                     nextHtml += `
                         <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
-                            <div class="next-slot-name">${formatName(p)}</div>
+                            <div class="next-slot-name">${formatNameHTML(p)}</div>
                             <div style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
                         </div>`;
                 });
@@ -792,37 +784,37 @@
                     let p3 = db.players.find(pl => pl.id === c.p[2]);
                     let p4 = db.players.find(pl => pl.id === c.p[3]);
                     
-                    let p1Text = p1 ? (p1.dailyNum ? `${p1.dailyNum}: ${p1.name}` : p1.name) : "";
-                    let p2Text = p2 ? (p2.dailyNum ? `${p2.dailyNum}: ${p2.name}` : p2.name) : "";
-                    let p3Text = p3 ? (p3.dailyNum ? `${p3.dailyNum}: ${p3.name}` : p3.name) : "";
-                    let p4Text = p4 ? (p4.dailyNum ? `${p4.dailyNum}: ${p4.name}` : p4.name) : "";
+                    let p1Text = p1 ? getPlayerDisplayName(p1) : "";
+                    let p2Text = p2 ? getPlayerDisplayName(p2) : "";
+                    let p3Text = p3 ? getPlayerDisplayName(p3) : "";
+                    let p4Text = p4 ? getPlayerDisplayName(p4) : "";
 
                     let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
                     courtsHtml += `
                         <div class="court-card">
                             <div class="court-header">
-                                <span class="court-title">コート ${c.id}</span>
+                                <span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em; color:var(--primary);">${c.id}</span></span>
                             </div>
                             <div class="match-row">
                                 <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
-                                    <div class="player-name" style="${getDynamicFontSize(p1Text)}">${p1 ? formatName(p1) : ""}</div>
-                                    <div class="player-name" style="${getDynamicFontSize(p2Text)}">${p2 ? formatName(p2) : ""}</div>
+                                    <div class="player-name" style="${getDynamicFontSize(p1Text)}">${p1 ? formatNameHTML(p1) : ""}</div>
+                                    <div class="player-name" style="${getDynamicFontSize(p2Text)}">${p2 ? formatNameHTML(p2) : ""}</div>
                                 </div>
-                                <div class="vs-badge">VS</div>
+                                <div class="vs-badge">×</div>
                                 <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
-                                    <div class="player-name" style="${getDynamicFontSize(p3Text)}">${p3 ? formatName(p3) : ""}</div>
-                                    <div class="player-name" style="${getDynamicFontSize(p4Text)}">${p4 ? formatName(p4) : ""}</div>
+                                    <div class="player-name" style="${getDynamicFontSize(p3Text)}">${p3 ? formatNameHTML(p3) : ""}</div>
+                                    <div class="player-name" style="${getDynamicFontSize(p4Text)}">${p4 ? formatNameHTML(p4) : ""}</div>
                                 </div>
                             </div>
-                            <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">試合終了 (空ける)</button>
+                            <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">⏹ OUT</button>
                         </div>`;
                 } else {
                     courtsHtml += `
-                        <div class="court-card">
-                            <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート ${c.id}</span></div>
-                            <div style="text-align:center; padding:32px 0; color:var(--text-sub); font-weight:900; font-size:1.2rem;">待機中 (空き)</div>
-                            <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ 次の4人を入れる</button>
+                        <div class="court-card empty-court">
+                            <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${c.id}</span></span></div>
+                            <div style="flex-grow:1; min-height:80px;"></div>
+                            <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>
                         </div>`;
                 }
             });
@@ -864,10 +856,10 @@
                                 added++;
                             }
                         });
-                        alert(`${added}名を名簿に追加しました！`);
+                        alert(`${added}名を追加しました。`);
                         saveToCloud();
                     }
-                } catch(err) { alert("読込に失敗しました。"); }
+                } catch(err) { alert("失敗しました。"); }
                 event.target.value = ""; 
             };
             reader.readAsText(file);
