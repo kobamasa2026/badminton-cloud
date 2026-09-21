@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V21(クラウド版)</title>
+    <title>ボード V22(クラウド版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -14,10 +14,9 @@
             --primary: #4F46E5; --primary-dark: #4338CA;
             --bg-base: #F3F4F6; --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
-            --status-waiting: #3B82F6; /* 待機(ブルー) */
-            --status-next: #8B5CF6; /* NEXT(パープル) */
-            --status-playing: #10B981; /* 試合中(グリーン) */
-            --status-inactive: #9CA3AF; /* 休憩(グレー) */
+            --status-waiting: #3B82F6; 
+            --status-next: #8B5CF6; 
+            --status-playing: #10B981; --status-inactive: #9CA3AF;
             --nav-height: 65px; --header-height: 56px;
         }
 
@@ -77,13 +76,11 @@
         .input-text { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--bg-surface); outline: none; }
         
         .next-queue-container { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; scroll-snap-type: x mandatory; }
-        /* 待機スロットを凡例に合わせてブルーに変更 */
         .next-slot {
             flex: 0 0 auto; width: 100px; height: 100px; border-radius: 50%; display: flex; flex-direction: column;
             justify-content: center; align-items: center; background: #EFF6FF; border: 3px solid var(--status-waiting);
             color: var(--status-waiting); font-weight: 900; scroll-snap-align: start; cursor: pointer; transition: all 0.2s;
         }
-        /* NEXTスロットはパープル */
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--status-next); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
         .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
@@ -98,7 +95,7 @@
         }
         .court-card.empty-court { min-height: 200px; justify-content: space-between; }
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
-        .court-title { font-weight: 900; font-size: 1.2rem; } /* 色指定はインラインで管理 */
+        .court-title { font-weight: 900; font-size: 1.2rem; } 
         
         .team-box { 
             background: #F8FAFC; border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;
@@ -106,11 +103,14 @@
             min-width: 0; overflow: hidden;
         }
         .team-box.playing { background: #D1FAE5; border-color: var(--status-playing); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        .team-box.selected { border-color: #3B82F6; background: #DBEAFE; box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); transform: scale(1.02); }
+        /* シャッフル選択時は黄色系(#EAB308)に変更 */
+        .team-box.selected { border-color: #EAB308; background: #FEF9C3; box-shadow: 0 0 12px rgba(234, 179, 8, 0.5); transform: scale(1.02); }
         
+        /* プレイヤー名の改行と「...」見切れ防止 */
         .player-name { 
             font-weight: 900; margin: 6px 0; letter-spacing: 0; line-height: 1.15; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            white-space: nowrap; 
+            /* overflow: hidden や text-overflow: ellipsis を削除し、強制的に収める */
             width: 100%; display: block;
         }
         
@@ -122,10 +122,8 @@
         .list-row:last-child { border-bottom: none; }
         .member-info { display: flex; align-items: center; gap: 12px; }
         .status-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
-        .dot-waiting { background: var(--status-waiting); }
         .dot-playing { background: var(--status-playing); }
-        .dot-inactive { background: var(--status-inactive); }
-        .dot-next { background: var(--status-next); box-shadow: 0 0 6px var(--status-next);}
+        
         .member-name { font-weight: 900; font-size: 1.2rem; }
         .member-meta { font-size: 0.9rem; color: var(--text-sub); display: flex; gap: 8px; font-weight: bold;}
 
@@ -141,7 +139,7 @@
     </div>
 
     <header>
-        <h1 class="header-title">ボード V21 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title">ボード V22 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -151,15 +149,13 @@
             <div class="card" style="padding-bottom: 12px;">
                 <div class="section-title" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        ⏩ 待機
+                        ⏩ 待機順
                         <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>
                     </div>
-                    <!-- 凡例 -->
+                    <!-- 凡例(NEXTと優先のみに絞る) -->
                     <div style="font-size:0.75rem; color:var(--text-main); display:flex; gap:8px; font-weight:bold;">
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-waiting);"></div>待機</span>
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);box-shadow:0 0 4px var(--status-next);"></div>NEXT</span>
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-playing);"></div>試合中</span>
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-inactive);"></div>休憩</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
+                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></div>優先</span>
                     </div>
                 </div>
                 
@@ -190,6 +186,10 @@
 
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
+                <!-- メンバー画面用の凡例（試合中の〇印の意味を説明） -->
+                <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (OUT不可)</span>
+                </div>
                 <div id="presentList"></div>
             </div>
 
@@ -326,7 +326,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v21_data';
+        const STORAGE_KEY = 'badmin_v22_data';
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -427,14 +427,14 @@
             return `<span class="${colorClass}">${numHtml}${p.name}</span>`;
         }
         
-        // 文字数に応じてフォントサイズを可変
+        // 文字数に応じてフォントサイズを可変（「…」にせず縮小して詰め込む）
         function getDynamicFontSize(text) {
             if (!text) return "";
             let len = text.length;
-            if (len <= 4) return 'font-size: clamp(1.4rem, 4vw + 0.5rem, 2.2rem);';
-            if (len <= 5) return 'font-size: clamp(1.2rem, 3.5vw + 0.4rem, 1.8rem);';
-            if (len <= 7) return 'font-size: clamp(1rem, 3vw + 0.3rem, 1.4rem);';
-            return 'font-size: clamp(0.85rem, 2.5vw + 0.2rem, 1.1rem);';
+            if (len <= 4) return 'font-size: clamp(1.2rem, 3.5vw + 0.3rem, 2.0rem);';
+            if (len <= 5) return 'font-size: clamp(1.0rem, 3.0vw + 0.2rem, 1.6rem);';
+            if (len <= 7) return 'font-size: clamp(0.85rem, 2.5vw + 0.1rem, 1.3rem);';
+            return 'font-size: clamp(0.7rem, 2vw, 1.0rem);';
         }
 
         // ==========================================
@@ -731,12 +731,16 @@
 
                 presentPlayers.forEach(p => {
                     let isNext = (p.status === 'waiting' && db.queue.indexOf(p.id) < 4 && db.queue.indexOf(p.id) !== -1);
-                    let dotClass = p.status === 'playing' ? 'dot-playing' : (isNext ? 'dot-next' : 'dot-waiting');
                     let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
+                    
+                    // 試合中の人のみ〇印を表示（クリック不可の目印）
+                    let dotHtml = p.status === 'playing' 
+                        ? '<div class="status-dot dot-playing"></div>' 
+                        : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                     
                     presentHtml += `
                         <div class="list-row" onclick="openPlayerMenu(${p.id})">
-                            <div class="member-info"><div class="status-dot ${dotClass}"></div><div class="member-name">${formatNameHTML(p)}</div></div>
+                            <div class="member-info">${dotHtml}<div class="member-name">${formatNameHTML(p)}</div></div>
                             <div class="member-meta"><span>${statusTxt}</span><span>(${p.playCount}回)</span></div>
                         </div>`;
                     presentCount++;
@@ -745,7 +749,7 @@
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
-                            <div class="member-info"><div class="status-dot dot-inactive"></div><div class="member-name">${formatNameHTML(p)}</div></div>
+                            <div class="member-info"><div style="width:14px; height:14px; flex-shrink:0;"></div><div class="member-name">${formatNameHTML(p)}</div></div>
                             <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ IN</span></div>
                         </div>`;
                 });
@@ -792,7 +796,6 @@
 
                     let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
-                    // 人がいるコートは黒字でくっきり
                     courtsHtml += `
                         <div class="court-card">
                             <div class="court-header">
@@ -812,7 +815,6 @@
                             <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">⏹ OUT</button>
                         </div>`;
                 } else {
-                    // 空きコートは全体をグレー(text-sub)で控えめに
                     courtsHtml += `
                         <div class="court-card empty-court">
                             <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${c.id}</span></span></div>
