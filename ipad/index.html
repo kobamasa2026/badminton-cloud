@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V26(ipadテスト版)</title>
+    <title>ボード V27(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -139,14 +139,15 @@
         <span id="loadingMsg">クラウドへ接続中...</span>
     </div>
 
-    <!-- ⚠️ ヘッダー：初期化ボタンは保守タブへ移動しました -->
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V26 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title" style="margin:0;">ボード V27 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
     <main>
+        <!-- ==================================== -->
         <!-- 1. 試合ビュー -->
+        <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
                 <div class="section-title" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
@@ -172,10 +173,29 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
-        <!-- 2. メンバービュー (管理者のみ) -->
+
+        <!-- ==================================== -->
+        <!-- 2. メンバービュー (管理者のみ)         -->
+        <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
             
-            <!-- ① 新規登録 -->
+            <!-- ① 参加中（使用頻度：高） -->
+            <div class="card">
+                <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
+                <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
+                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (休憩不可)</span>
+                </div>
+                <div id="presentList"></div>
+            </div>
+
+            <!-- ② 名簿 / 受付前（使用頻度：高〜中） -->
+            <div class="card">
+                <div class="section-title">名簿</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付</p>
+                <div id="inactiveList"></div>
+            </div>
+
+            <!-- ③ 新規登録（使用頻度：低） -->
             <div class="card">
                 <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規登録</h3>
                 <div style="display:flex; gap:8px;">
@@ -188,23 +208,7 @@
                 </div>
             </div>
 
-            <!-- ② 名簿（受付前） -->
-            <div class="card">
-                <div class="section-title">名簿</div>
-                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付</p>
-                <div id="inactiveList"></div>
-            </div>
-
-            <!-- ③ 参加中 -->
-            <div class="card">
-                <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
-                <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
-                    <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (休憩不可)</span>
-                </div>
-                <div id="presentList"></div>
-            </div>
-
-            <!-- ④ 練習の終了（リセット・履歴保存） -->
+            <!-- ④ 練習の終了（使用頻度：最後のみ） -->
             <div class="card">
                 <div class="section-title">練習の終了</div>
                 <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">本日の参加回数を履歴に保存し、全員を名簿に戻します。</p>
@@ -212,20 +216,13 @@
             </div>
         </div>
 
-        <!-- 3. 保守ビュー (管理者のみ) -->
+
+        <!-- ==================================== -->
+        <!-- 3. 保守ビュー (管理者のみ)             -->
+        <!-- ==================================== -->
         <div id="view-maintenance" class="view admin-only">
             
-            <!-- ① 履歴 -->
-            <div class="card">
-                <div class="section-title">📅 履歴</div>
-                <div style="display:flex; gap:8px; margin-bottom:16px;">
-                    <select id="historyDateSelect" class="input-text" onchange="renderHistoryDetail()"></select>
-                    <button class="btn-danger" style="width:auto; padding:0 16px;" onclick="deleteHistory()">削除</button>
-                </div>
-                <div id="historyDetailArea"></div>
-            </div>
-
-            <!-- ② コート数設定 -->
+            <!-- ① コート数設定（使用頻度：中） -->
             <div class="card">
                 <div class="section-title">コート数</div>
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;">
@@ -237,24 +234,40 @@
                 </div>
             </div>
 
-            <!-- ③ 名簿の編集・削除 -->
+            <!-- ② 名簿の編集・削除（使用頻度：低） -->
             <div class="card">
                 <div class="section-title">名簿の編集・削除</div>
                 <p style="font-size:0.85rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">※参加中(IN)の人は削除できません。休憩させてから削除してください。</p>
                 <div id="maintenanceRosterArea"></div>
             </div>
 
-            <!-- ④ 全データ初期化 -->
-            <div class="card" style="margin-top: 32px; border: 2px solid #FECACA;">
-                <div class="section-title" style="color:#DC2626;">データ管理</div>
-                <button class="btn-danger" onclick="confirmResetAll()">⚠️ 全データ初期化 (全削除)</button>
+            <!-- ③ データ管理（履歴出力・初期化） -->
+            <div class="card" style="border: 2px solid var(--border);">
+                <div class="section-title">データ管理</div>
+                
+                <!-- 履歴グループ -->
+                <h4 style="margin: 0 0 8px 0; font-size: 1rem; color: var(--text-main);">📅 参加者履歴</h4>
+                <p style="font-size:0.8rem; color:var(--text-sub); margin-top:-4px; margin-bottom:12px; font-weight:bold;">選択した日付の履歴をCSVファイルで出力できます。</p>
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <select id="historyDateSelect" class="input-text" onchange="renderHistoryDetail()" style="flex:1;"></select>
+                    <!-- 出力ボタンの追加 -->
+                    <button class="btn-secondary" style="width:auto; padding:0 12px; font-size:0.9rem;" onclick="exportHistoryCSV()">出力</button>
+                    <!-- スタイルの統一化 -->
+                    <button class="btn-danger-small" style="width:auto; padding:0 12px; font-size:0.9rem; border-radius:8px;" onclick="deleteHistory()">削除</button>
+                </div>
+                <div id="historyDetailArea"></div>
+
+                <hr style="border:none; border-top:2px solid var(--border); margin:24px 0;">
+                
+                <!-- 初期化グループ -->
+                <h4 style="margin: 0 0 12px 0; font-size: 1rem; color: #DC2626;">⚠️ システムリセット</h4>
+                <button class="btn-danger" onclick="confirmResetAll()">全データ初期化 (全削除)</button>
             </div>
         </div>
     </main>
 
-    <!-- タブを3つに統合 -->
+    <!-- タブメニュー -->
     <nav class="bottom-nav">
-        <!-- hrefにはURLパラメータが消えないようダミーのクエリを入れておく -->
         <a href="?view=matches" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
         </a>
@@ -266,6 +279,7 @@
         </a>
     </nav>
 
+    <!-- モーダル -->
     <div class="modal-overlay admin-only" id="statusModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
@@ -291,30 +305,25 @@
         firebase.initializeApp(firebaseConfig);
 
         // ==========================================
-        // 2. 権限とルーム（団体）管理のURLパラメータ
+        // 2. 権限とルーム（団体）管理
         // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
         
-        // ★許可するルーム（団体ID）と、それぞれの監督用パスワードのリスト (ホワイトリスト)
-        // ※ ここに登録されていないパラメータでアクセスされた場合はエラーになります（勝手なルーム生成の防止）
         const allowedGroups = {
-            'yyc': 'secret'   // 第1グループ (URL: ?g=yyc&p=secret)
-            // 'club2': 'pass2' のように、団体が増えたらここに追加します
+            'yyc': 'secret'   // 第1グループ
         };
         
         const groupId = urlParams.get('g');
 
-        // ★不正アクセスの完全ブロック処理
         if (!groupId || !allowedGroups.hasOwnProperty(groupId)) {
             document.body.innerHTML = `
                 <div style="padding: 40px 20px; text-align: center; font-size: 1.2rem; font-weight: bold; color: #DC2626;">
                     【エラー】無効なアクセスです。<br><br>
                     <span style="font-size: 0.9rem; color: #6B7280;">正しい団体用のURL（例: ?g=yyc）からアクセスしてください。</span>
                 </div>`;
-            throw new Error("Invalid Group ID"); // これによりFirebaseの通信を含めアプリの起動が完全にストップします
+            throw new Error("Invalid Group ID");
         }
         
-        // パスワード判定
         const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
 
         if (isAdmin) {
@@ -323,7 +332,7 @@
             document.body.classList.add('viewer-mode');
         }
 
-        // ★V25との干渉（データ消失）を防ぐための保存先変更（ipadフォルダ用）
+        // V25干渉防止のための保存先 (ipad用)
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
@@ -332,8 +341,6 @@
         function initRouter() {
             let view = urlParams.get('view') || 'matches';
             if (!isAdmin) view = 'matches'; 
-            
-            // 旧バージョンのURL（history等）でアクセスされた場合の救済
             if (view === 'history' || view === 'settings') view = 'maintenance';
             
             activateView(view);
@@ -367,7 +374,7 @@
         // 4. データ構造と通信
         // ==========================================
         let db = { players: [], queue: [], courts: [], maxCourts: 6, dailyCounter: 1, history: {} };
-        const STORAGE_KEY = 'badmin_v26_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v27_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -759,6 +766,39 @@
             if (confirm(`${date} の履歴を削除しますか？`)) {
                 delete db.history[date];
                 saveToCloud();
+            }
+        }
+
+        // ★追加: 履歴のCSVファイル出力
+        function exportHistoryCSV() {
+            if (!isAdmin) return;
+            let date = document.getElementById('historyDateSelect').value;
+            if (!date || !db.history[date]) return alert("出力する履歴がありません。");
+            
+            let records = db.history[date];
+            let arr = Object.keys(records).map(id => ({id: id, ...records[id]}));
+            arr.sort((a,b) => (a.dailyNum || 0) - (b.dailyNum || 0)); 
+            
+            let csv = "受付番号,名前,性別,プレイ回数\n";
+            arr.forEach(r => {
+                let gender = r.gender === 'F' ? '女性' : '男性';
+                let num = r.dailyNum || '';
+                csv += `${num},${r.name},${gender},${r.playCount}\n`;
+            });
+            
+            // Excel等での文字化けを防ぐためBOM（Byte Order Mark）を付与
+            let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            let blob = new Blob([bom, csv], { type: "text/csv" });
+            let file = new File([blob], `history_${date}.csv`, { type: "text/csv" });
+            
+            // iOS等での直接共有（シェア）に対応
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ title: `参加者履歴_${date}`, files: [file] }).catch(err => console.log(err));
+            } else {
+                let url = URL.createObjectURL(blob);
+                let dlNode = document.createElement('a');
+                dlNode.href = url; dlNode.download = `history_${date}.csv`;
+                document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
             }
         }
 
