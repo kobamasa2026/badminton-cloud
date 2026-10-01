@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V34(ipadテスト版)</title>
+    <title>ボード V35(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -31,9 +31,9 @@
             transition: background-color 0.3s ease;
         }
 
-        /* ★V34 試合画面のみ背景色を変更（目立たせる） */
+        /* 試合画面のみ背景色を変更（目立たせる） */
         body.view-matches-active.mode-split-A { background-color: #FECACA !important; } /* 上級：赤系 */
-        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* 中級：黒/グレー系 */
+        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* 中級：グレー系 */
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -151,7 +151,7 @@
     </div>
 
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V34 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title" style="margin:0;">ボード V35 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -163,7 +163,7 @@
             <div class="card" style="padding-bottom: 12px;">
                 <div class="section-title" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
                     <div id="matchHeaderTitle" style="display:flex; align-items:center; gap:8px;">
-                        <!-- JSで動的にタイトルを描画（クリックでランク切替） -->
+                        <!-- JSで動的にタイトルを描画 -->
                     </div>
                     <!-- 凡例 -->
                     <div style="font-size:0.75rem; color:var(--text-main); display:flex; gap:8px; font-weight:bold;">
@@ -313,15 +313,16 @@
         </div>
     </main>
 
+    <!-- ★V35: URLパラメータ消失バグ修正のため href="javascript:void(0);" に変更 -->
     <!-- タブメニュー -->
     <nav class="bottom-nav">
-        <a href="?view=matches" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
+        <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
         </a>
-        <a href="?view=roster" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
+        <a href="javascript:void(0);" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
             <span class="nav-icon">👥</span><span>メンバー</span>
         </a>
-        <a href="?view=maintenance" class="nav-item admin-only" id="nav-maintenance" onclick="routeTo(event, 'maintenance')">
+        <a href="javascript:void(0);" class="nav-item admin-only" id="nav-maintenance" onclick="routeTo(event, 'maintenance')">
             <span class="nav-icon">🛠</span><span>保守</span>
         </a>
     </nav>
@@ -414,6 +415,15 @@
             });
         }
         
+        function routeTo(event, viewId) {
+            if(event) event.preventDefault();
+            if (!isAdmin && viewId !== 'matches') return;
+            const url = new URL(window.location);
+            url.searchParams.set('view', viewId);
+            window.history.pushState({ view: viewId }, '', url);
+            activateView(viewId);
+        }
+        
         function activateView(viewId) {
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -422,7 +432,6 @@
             if (viewEl) viewEl.classList.add('active');
             if (navEl) navEl.classList.add('active');
             
-            // ★試合画面の時だけ特殊な背景色クラスを付与する
             if (viewId === 'matches') {
                 document.body.classList.add('view-matches-active');
             } else {
@@ -442,7 +451,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v34_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v35_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -562,7 +571,6 @@
             return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name;
         }
 
-        // ★V34: 文字色をランクで完全に固定 (A=赤, B=黒)
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
             let colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
@@ -578,7 +586,6 @@
             return 'font-size: clamp(0.7rem, 2vw, 1.0rem);';
         }
 
-        // ★V34: リスト上で瞬時にランクを切り替える機能
         function toggleRank(id) {
             if(!isAdmin) return;
             let p = db.players.find(x => x.id === id);
@@ -596,7 +603,6 @@
                 if (newRank === 'A') db.queueA.push(id);
                 else db.queueB.push(id);
                 
-                // 受付番号順に整列
                 let sortByNum = (id1, id2) => {
                     let p1 = db.players.find(x => x.id === id1);
                     let p2 = db.players.find(x => x.id === id2);
@@ -1206,12 +1212,10 @@
                 let presentHtml = "";
                 let presentCount = 0;
 
-                // ★ V34改善：名簿や参加中リストはクラスで分けず「全員」を表示する
                 let presentPlayers = db.players.filter(p => p.status !== 'inactive');
                 presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
 
                 presentPlayers.forEach(p => {
-                    // その人が所属しているべきキューを参照してNEXT判定
                     let pQueue = db.mode === 'combined' ? db.queueCombined : (p.rank === 'A' ? db.queueA : db.queueB);
                     let isNext = (p.status === 'waiting' && pQueue.indexOf(p.id) < 4 && pQueue.indexOf(p.id) !== -1);
                     let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
@@ -1221,7 +1225,6 @@
                         : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                     
                     let rnk = p.rank === 'A' ? '上級' : '中級';
-                    // ワンタッチでランクを切り替えられるボタン
                     let rankBtn = isAdmin 
                         ? `<button class="rank-badge rank-${p.rank}" onclick="event.stopPropagation(); toggleRank(${p.id})" style="cursor:pointer; margin-left:8px;">${rnk} 🔄</button>` 
                         : `<span class="rank-badge rank-${p.rank}" style="margin-left:8px;">${rnk}</span>`;
@@ -1251,7 +1254,6 @@
                 document.getElementById('inactiveList').innerHTML = inactiveHtml;
                 document.getElementById('presentList').innerHTML = presentHtml;
                 
-                // タイトルから切替機能を排除しシンプルに
                 document.getElementById('rosterPresentTitle').innerHTML = `参加中 (<span style="color:var(--primary);">${presentCount}</span>)`;
                 document.getElementById('rosterInactiveTitle').innerHTML = `名簿`;
                 
@@ -1273,7 +1275,6 @@
                 }
             }
 
-            // ★V34: 背景色切り替え処理の最適化
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
 
