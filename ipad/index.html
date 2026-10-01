@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V31(ipadテスト版)</title>
+    <title>ボード V32(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -151,7 +151,7 @@
     </div>
 
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V31 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title" style="margin:0;">ボード V32 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -401,7 +401,7 @@
             document.body.classList.add('viewer-mode');
         }
 
-        // V31(30改)保存先 (ipad用)
+        // 保存先 (ipad用)
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
@@ -449,7 +449,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v31_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v32_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -478,6 +478,9 @@
                 db.courtsCombined = data.courtsCombined || data.courts || [];
                 db.courtsA = data.courtsA || [];
                 db.courtsB = data.courtsB || [];
+                
+                // ★ V32修正：データ移行直後や配列が空の場合に備えて必ず生成を保証する
+                adjustAllCourts();
                 
                 [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                     arr.forEach(c => { if (!c.p) c.p = []; });
@@ -695,7 +698,6 @@
                     });
                     manualSelectedIds = [];
                     saveToCloud();
-                    
                     alert("練習を終了し、全員をリセットしました。");
                 }
             }
@@ -1233,10 +1235,12 @@
                 }
             }
 
+            // ★ V32改善：試合画面のタイトルとスタイル設定
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             if (db.mode === 'combined') {
                 document.body.className = isAdmin ? 'admin-mode mode-combined' : 'viewer-mode mode-combined';
-                matchTitleEl.innerHTML = `⏩ 待機順 (合同)`;
+                // ★ V32修正：合同モードでの「※タップで優先」を復活
+                matchTitleEl.innerHTML = `⏩ 待機順 (合同) <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>`;
             } else {
                 let rankStr = currentViewRank === 'A' ? '上級' : '中級';
                 let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
@@ -1266,23 +1270,29 @@
             let courtsHtml = "";
             let activeCourts = getActiveCourts();
             activeCourts.forEach((c, idx) => {
+                let p1 = db.players.find(pl => pl.id === c.p[0]);
+                let p2 = db.players.find(pl => pl.id === c.p[1]);
+                let p3 = db.players.find(pl => pl.id === c.p[2]);
+                let p4 = db.players.find(pl => pl.id === c.p[3]);
+                
+                let p1Text = p1 ? getPlayerDisplayName(p1) : "";
+                let p2Text = p2 ? getPlayerDisplayName(p2) : "";
+                let p3Text = p3 ? getPlayerDisplayName(p3) : "";
+                let p4Text = p4 ? getPlayerDisplayName(p4) : "";
+
+                let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
+
+                // ★ V32改善: 中級の場合は、上級のコート数に足して連番にする（例: 上級が3面なら中級は4面目から）
+                let displayCourtId = c.id;
+                if (db.mode === 'split' && currentViewRank === 'B') {
+                    displayCourtId = db.maxCourtsA + c.id;
+                }
+
                 if (c.p && c.p.length === 4) {
-                    let p1 = db.players.find(pl => pl.id === c.p[0]);
-                    let p2 = db.players.find(pl => pl.id === c.p[1]);
-                    let p3 = db.players.find(pl => pl.id === c.p[2]);
-                    let p4 = db.players.find(pl => pl.id === c.p[3]);
-                    
-                    let p1Text = p1 ? getPlayerDisplayName(p1) : "";
-                    let p2Text = p2 ? getPlayerDisplayName(p2) : "";
-                    let p3Text = p3 ? getPlayerDisplayName(p3) : "";
-                    let p4Text = p4 ? getPlayerDisplayName(p4) : "";
-
-                    let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
-
                     courtsHtml += `
                         <div class="court-card">
                             <div class="court-header">
-                                <span class="court-title" style="color:var(--text-main);">コート <span style="font-size:1.4em;">${c.id}</span></span>
+                                <span class="court-title" style="color:var(--text-main);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span>
                             </div>
                             <div class="match-row">
                                 <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
@@ -1300,7 +1310,7 @@
                 } else {
                     courtsHtml += `
                         <div class="court-card empty-court">
-                            <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${c.id}</span></span></div>
+                            <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span></div>
                             <div style="flex-grow:1; min-height:80px;"></div>
                             <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>
                         </div>`;
