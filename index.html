@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V35(ipadテスト版)</title>
+    <title>ボード V36(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -139,7 +139,7 @@
         .rank-B { background: #F3F4F6; color: #111827; border-color: #D1D5DB; }
 
         /* タイトルクリック可能UI */
-        .clickable-title { cursor: pointer; padding: 4px 8px; margin: -4px -8px; border-radius: 8px; transition: background 0.2s; }
+        .clickable-title { cursor: pointer; padding: 8px 24px; border-radius: 12px; transition: background 0.2s; background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.05); }
         .clickable-title:active { background: rgba(0,0,0,0.05); }
     </style>
 </head>
@@ -151,7 +151,7 @@
     </div>
 
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V35 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title" style="margin:0;">ボード V36 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -161,12 +161,13 @@
         <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
-                <div class="section-title" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
-                    <div id="matchHeaderTitle" style="display:flex; align-items:center; gap:8px;">
-                        <!-- JSで動的にタイトルを描画 -->
+                <!-- ★V36: ヘッダーレイアウトの改善（中央寄せ、大型化） -->
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+                    <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
+                        <!-- JSで動的にタイトルを描画（クリックでランク切替） -->
                     </div>
                     <!-- 凡例 -->
-                    <div style="font-size:0.75rem; color:var(--text-main); display:flex; gap:8px; font-weight:bold;">
+                    <div style="font-size:0.75rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:8px; font-weight:bold;">
                         <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
                         <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></div>優先</span>
                     </div>
@@ -313,7 +314,6 @@
         </div>
     </main>
 
-    <!-- ★V35: URLパラメータ消失バグ修正のため href="javascript:void(0);" に変更 -->
     <!-- タブメニュー -->
     <nav class="bottom-nav">
         <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
@@ -451,7 +451,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v35_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v36_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -595,7 +595,6 @@
             let newRank = p.rank === 'A' ? 'B' : 'A';
             p.rank = newRank;
             
-            // 待機中ならキュー間を移動させる
             if (db.mode === 'split' && p.status === 'waiting') {
                 db.queueA = db.queueA.filter(x => x !== id);
                 db.queueB = db.queueB.filter(x => x !== id);
@@ -1035,17 +1034,23 @@
             let sortedMaster = [...db.players].sort((a, b) => a.id - b.id);
             
             sortedMaster.forEach(p => {
-                let statusBadge = p.status !== 'inactive' ? '<span style="color:#10B981; font-size:0.8rem; font-weight:bold; margin-left:8px;">[IN]</span>' : '';
+                let statusBadge = p.status !== 'inactive' ? '<span style="color:#10B981; font-size:0.8rem; font-weight:bold;">[IN]</span>' : '';
                 let rnk = p.rank === 'A' ? '上級' : '中級';
                 
+                // ★V36: 保守画面のリスト横位置の固定幅による整列
                 html += `
                 <div class="list-row">
-                    <div class="member-name">
-                        <span style="color:var(--text-sub); font-size:0.8em; margin-right:8px; width:20px; display:inline-block; text-align:right;">${p.id}.</span>
-                        ${formatNameHTML(p)}
-                        <span class="rank-badge rank-${p.rank}" style="margin-left:8px;">${rnk}</span> ${statusBadge}
+                    <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
+                        <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
+                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}</div>
+                        <div style="width:40px; text-align:center; flex-shrink:0;">
+                            <span class="rank-badge rank-${p.rank}">${rnk}</span>
+                        </div>
+                        <div style="width:36px; text-align:right; flex-shrink:0;">
+                            ${statusBadge}
+                        </div>
                     </div>
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:8px; flex-shrink:0;">
                         <button class="btn-secondary" style="padding:6px 12px; font-size:0.9rem;" onclick="editMember(${p.id})">編集</button>
                         <button class="btn-danger-small" style="padding:6px 12px; font-size:0.9rem;" onclick="deleteMember(${p.id})">削除</button>
                     </div>
@@ -1192,7 +1197,6 @@
         // ==========================================
         function render() {
             if (isAdmin) {
-                // クラスの付け替えによるUIバグ防止
                 document.body.classList.toggle('admin-mode', isAdmin);
                 document.body.classList.toggle('viewer-mode', !isAdmin);
 
@@ -1225,14 +1229,24 @@
                         : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                     
                     let rnk = p.rank === 'A' ? '上級' : '中級';
+                    
+                    // ★V36: 参加中リストのボタン横位置の固定幅による整列
                     let rankBtn = isAdmin 
-                        ? `<button class="rank-badge rank-${p.rank}" onclick="event.stopPropagation(); toggleRank(${p.id})" style="cursor:pointer; margin-left:8px;">${rnk} 🔄</button>` 
-                        : `<span class="rank-badge rank-${p.rank}" style="margin-left:8px;">${rnk}</span>`;
+                        ? `<button class="rank-badge rank-${p.rank}" onclick="event.stopPropagation(); toggleRank(${p.id})" style="cursor:pointer; width:52px;">${rnk} 🔄</button>` 
+                        : `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnk}</span>`;
                     
                     presentHtml += `
                         <div class="list-row" onclick="openPlayerMenu(${p.id})">
-                            <div class="member-info">${dotHtml}<div class="member-name">${formatNameHTML(p)}${rankBtn}</div></div>
-                            <div class="member-meta"><span>${statusTxt}</span><span>(${p.playCount}回)</span></div>
+                            <div class="member-info" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                ${dotHtml}
+                                <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                    <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}</div>
+                                    <div style="margin-left:8px; flex-shrink:0;">${rankBtn}</div>
+                                </div>
+                            </div>
+                            <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:80px; text-align:right;">
+                                <span>${statusTxt}</span><span style="display:inline-block; width:36px;">(${p.playCount}回)</span>
+                            </div>
                         </div>`;
                     presentCount++;
                 });
@@ -1240,14 +1254,22 @@
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
                     let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
                     let rnk = p.rank === 'A' ? '上級' : '中級';
-                    let rankBtn = isAdmin 
-                        ? `<button class="rank-badge rank-${p.rank}" onclick="event.stopPropagation(); toggleRank(${p.id})" style="cursor:pointer; margin-left:8px;">${rnk} 🔄</button>` 
-                        : `<span class="rank-badge rank-${p.rank}" style="margin-left:8px;">${rnk}</span>`;
+                    
+                    // ★V36: 名簿リストはランク表示のみ（ボタン化しない）
+                    let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnk}</span>`;
 
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
-                            <div class="member-info"><div style="width:14px; height:14px; flex-shrink:0;"></div><div class="member-name">${formatNameHTML(p)}${rankBtn}${breakBadge}</div></div>
-                            <div class="member-meta"><span style="color:var(--primary); font-weight:900;">＋ 受付</span></div>
+                            <div class="member-info" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                <div style="width:14px; height:14px; flex-shrink:0;"></div>
+                                <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                    <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}${breakBadge}</div>
+                                    <div style="margin-left:8px; flex-shrink:0;">${rankBadge}</div>
+                                </div>
+                            </div>
+                            <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:60px; text-align:right;">
+                                <span style="color:var(--primary); font-weight:900;">＋ 受付</span>
+                            </div>
                         </div>`;
                 });
 
@@ -1278,14 +1300,15 @@
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
 
+            // ★V36: ヘッダータイトルの大型化・中央化
             if (db.mode === 'combined') {
                 document.body.classList.add('mode-combined');
-                matchTitleEl.innerHTML = `⏩ 待機順 (合同) <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>`;
+                matchTitleEl.innerHTML = `<div style="font-size:1.4rem; font-weight:900; padding:4px 0;">⏩ 待機順 (合同) <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
             } else {
                 let rankStr = currentViewRank === 'A' ? '上級' : '中級';
                 let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
                 document.body.classList.add(bodyClass);
-                matchTitleEl.innerHTML = `<div class="clickable-title" onclick="toggleRankView()" style="display:flex; align-items:center; gap:8px;">⏩ 待機順 (${rankStr}) 🔄 <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
+                matchTitleEl.innerHTML = `<div class="clickable-title" onclick="toggleRankView()" style="display:flex; align-items:center; justify-content:center; gap:12px; font-size:1.4rem; font-weight:900; width:100%;">⏩ 待機順 (${rankStr}) 🔄 <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
             }
 
             let nextHtml = "";
