@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V32(ipadテスト版)</title>
+    <title>ボード V33(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -151,7 +151,7 @@
     </div>
 
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V32 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title" style="margin:0;">ボード V33 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -449,7 +449,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v32_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v33_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -479,7 +479,7 @@
                 db.courtsA = data.courtsA || [];
                 db.courtsB = data.courtsB || [];
                 
-                // ★ V32修正：データ移行直後や配列が空の場合に備えて必ず生成を保証する
+                // ★ V33修正：必ず指定数のコート配列を裏で生成しておく（真っ白防止）
                 adjustAllCourts();
                 
                 [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
@@ -625,8 +625,11 @@
                 db.queueA = []; db.queueB = [];
                 db.queueCombined.forEach(id => {
                     let p = db.players.find(x => x.id === id);
-                    if (p.rank === 'A') db.queueA.push(id);
-                    else db.queueB.push(id);
+                    // ★ V33修正：万が一削除済みデータがキューに残っていた場合のクラッシュ防止
+                    if (p) {
+                        if (p.rank === 'A') db.queueA.push(id);
+                        else db.queueB.push(id);
+                    }
                 });
                 db.queueCombined = [];
             } else {
@@ -634,7 +637,9 @@
                 db.queueCombined.sort((id1, id2) => {
                     let p1 = db.players.find(x => x.id === id1);
                     let p2 = db.players.find(x => x.id === id2);
-                    return (p1.dailyNum || 999) - (p2.dailyNum || 999);
+                    let n1 = p1 ? (p1.dailyNum || 999) : 999;
+                    let n2 = p2 ? (p2.dailyNum || 999) : 999;
+                    return n1 - n2;
                 });
                 db.queueA = []; db.queueB = [];
             }
@@ -830,7 +835,9 @@
             
             finalPlayers.forEach(id => {
                 let p = db.players.find(pl => pl.id === id);
-                p.status = 'playing'; p.playCount++; court.p.push(id);
+                if (p) {
+                    p.status = 'playing'; p.playCount++; court.p.push(id);
+                }
             });
             
             court.p.sort(() => Math.random() - 0.5);
@@ -865,7 +872,9 @@
                 let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
                     let p = db.players.find(pl => pl.id === id);
-                    p.status = 'playing'; p.playCount++; court.p.push(id);
+                    if (p) {
+                        p.status = 'playing'; p.playCount++; court.p.push(id);
+                    }
                 });
             }
             saveToCloud();
@@ -1056,7 +1065,7 @@
                         targetQ.sort((id1, id2) => {
                             let p1 = db.players.find(x => x.id === id1);
                             let p2 = db.players.find(x => x.id === id2);
-                            return (p1.dailyNum||999) - (p2.dailyNum||999);
+                            return (p1?p1.dailyNum:999) - (p2?p2.dailyNum:999);
                         });
                     }
                 }
@@ -1204,16 +1213,16 @@
 
                 document.getElementById('inactiveList').innerHTML = inactiveHtml;
                 document.getElementById('presentList').innerHTML = presentHtml;
-                document.getElementById('activeCount').innerText = presentCount;
                 
+                // ★ V33修正：IDへの依存を廃止し、丸ごとHTMLを描画
                 let rosterPresentTitle = document.getElementById('rosterPresentTitle');
                 let rosterInactiveTitle = document.getElementById('rosterInactiveTitle');
                 if (db.mode === 'combined') {
-                    rosterPresentTitle.innerHTML = `参加中 (<span id="activeCount" style="color:var(--primary);">${presentCount}</span>)`;
+                    rosterPresentTitle.innerHTML = `参加中 (<span style="color:var(--primary);">${presentCount}</span>)`;
                     rosterInactiveTitle.innerHTML = `名簿`;
                 } else {
                     let rankStr = currentViewRank === 'A' ? '上級' : '中級';
-                    rosterPresentTitle.innerHTML = `<div class="clickable-title" onclick="toggleRankView()">参加中 (${rankStr}) 🔄 <span id="activeCount" style="color:var(--primary);">${presentCount}</span></div>`;
+                    rosterPresentTitle.innerHTML = `<div class="clickable-title" onclick="toggleRankView()">参加中 (${rankStr}) 🔄 <span style="color:var(--primary);">${presentCount}</span></div>`;
                     rosterInactiveTitle.innerHTML = `<div class="clickable-title" onclick="toggleRankView()">名簿 (${rankStr}) 🔄</div>`;
                 }
                 
@@ -1235,11 +1244,10 @@
                 }
             }
 
-            // ★ V32改善：試合画面のタイトルとスタイル設定
+            // ★ V33改善：試合画面のタイトルとスタイル設定
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             if (db.mode === 'combined') {
                 document.body.className = isAdmin ? 'admin-mode mode-combined' : 'viewer-mode mode-combined';
-                // ★ V32修正：合同モードでの「※タップで優先」を復活
                 matchTitleEl.innerHTML = `⏩ 待機順 (合同) <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span>`;
             } else {
                 let rankStr = currentViewRank === 'A' ? '上級' : '中級';
@@ -1282,7 +1290,7 @@
 
                 let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
-                // ★ V32改善: 中級の場合は、上級のコート数に足して連番にする（例: 上級が3面なら中級は4面目から）
+                // ★ V33改善: 中級の場合は、上級のコート数に足して連番にする
                 let displayCourtId = c.id;
                 if (db.mode === 'split' && currentViewRank === 'B') {
                     displayCourtId = db.maxCourtsA + c.id;
