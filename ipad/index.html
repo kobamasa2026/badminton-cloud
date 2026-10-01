@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V29(ipadテスト版)</title>
+    <title>ボード V31(ipadテスト版)</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -15,7 +15,7 @@
             --bg-base: #F3F4F6; /* 合同モードの背景色（グレー系） */
             --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
-            --status-waiting: #9CA3AF; /* 待機はグレーに変更 */
+            --status-waiting: #9CA3AF; /* 待機はグレー */
             --status-next: #8B5CF6; 
             --status-playing: #10B981; --status-inactive: #9CA3AF;
             --nav-height: 65px; --header-height: 56px;
@@ -151,7 +151,7 @@
     </div>
 
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V29 <span class="admin-badge">監督</span></h1>
+        <h1 class="header-title" style="margin:0;">ボード V31 <span class="admin-badge">監督</span></h1>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
     </header>
 
@@ -280,10 +280,10 @@
             <div class="card">
                 <div class="section-title">名簿マスタの照会</div>
                 <p style="font-size:0.85rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">
-                    ※参加中(IN)のメンバーがいる場合、インポート・エクスポート操作は禁止されます。
+                    ※参加中(IN)のメンバーがいる場合、インポート・エクスポート操作は禁止されます。パソコン等での一括編集は練習開始前に行ってください。
                 </p>
                 <div style="display:flex; gap:8px; margin-bottom:16px;">
-                    <button id="btnExportRoster" class="btn-secondary" style="flex:1; display:flex; justify-content:center; align-items:center;" onclick="exportRosterCSV()">📤 エクスポート</button>
+                    <button id="btnExportRoster" class="btn-secondary" style="flex:1; display:flex; justify-content:center; align-items:center;" onclick="exportRosterCSV('roster_master.csv')">📤 エクスポート</button>
                     <button id="btnImportRoster" class="btn-secondary" style="flex:1; display:flex; justify-content:center; align-items:center;" onclick="document.getElementById('importRosterFile').click()">📥 インポート</button>
                     <input type="file" id="importRosterFile" accept=".csv" style="display:none;" onchange="importRosterCSV(event)">
                 </div>
@@ -401,7 +401,7 @@
             document.body.classList.add('viewer-mode');
         }
 
-        // V29保存先 (ipad用)
+        // V31(30改)保存先 (ipad用)
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
@@ -449,7 +449,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v29_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v31_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -460,11 +460,10 @@
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                // V28からのデータ移行ロジックを含むロード
                 db.players = data.players || [];
                 db.players.forEach(p => {
-                    if (!p.rank) p.rank = 'B'; // 既存データにランクが無い場合は中級(B)とする
-                    if (p.gender) delete p.gender; // 性別データのクリーンアップ
+                    if (!p.rank) p.rank = 'B';
+                    if (p.gender) delete p.gender;
                 });
                 
                 db.mode = data.mode || 'combined';
@@ -492,7 +491,6 @@
                     isInitialLoad = false;
                 }
                 
-                // 現在のキューに存在しない手動選択IDをクリア
                 let activeQ = getActiveQueue();
                 manualSelectedIds = manualSelectedIds.filter(id => activeQ.includes(id));
                 render();
@@ -561,7 +559,7 @@
         function toggleRankView() {
             if (db.mode !== 'split') return;
             currentViewRank = currentViewRank === 'A' ? 'B' : 'A';
-            manualSelectedIds = []; // 画面切替時に選択状態をクリア
+            manualSelectedIds = [];
             render();
         }
 
@@ -571,7 +569,6 @@
 
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            // 性別の色付けを廃止
             return `<span>${numHtml}${p.name}</span>`;
         }
         
@@ -612,7 +609,6 @@
         function changeOperationMode(newMode) {
             if (!isAdmin || newMode === db.mode) return;
             
-            // 試合中のメンバーがいる場合は変更不可
             if (db.players.some(p => p.status === 'playing')) {
                 alert("試合中(IN)のメンバーがいるため運用モードを変更できません。\n全員を待機状態(OUT)にしてください。");
                 document.getElementById('settingMode').value = db.mode;
@@ -632,7 +628,6 @@
                 db.queueCombined = [];
             } else {
                 db.queueCombined = [...db.queueA, ...db.queueB];
-                // 受付番号順に再整列
                 db.queueCombined.sort((id1, id2) => {
                     let p1 = db.players.find(x => x.id === id1);
                     let p2 = db.players.find(x => x.id === id2);
@@ -700,6 +695,7 @@
                     });
                     manualSelectedIds = [];
                     saveToCloud();
+                    
                     alert("練習を終了し、全員をリセットしました。");
                 }
             }
@@ -713,7 +709,6 @@
             if (!name) return;
             if (db.players.some(p => p.name === name)) return alert("既に登録されています。");
             
-            // 1から始まる連番IDを生成
             let maxId = db.players.reduce((max, p) => Math.max(max, p.id), 0);
             
             saveStateToHistory();
@@ -761,7 +756,6 @@
             let player = db.players.find(p => p.id === currentModalPlayerId);
             if (player) {
                 saveStateToHistory();
-                // どのキューにいても一旦削除
                 db.queueCombined = db.queueCombined.filter(q => q !== player.id);
                 db.queueA = db.queueA.filter(q => q !== player.id);
                 db.queueB = db.queueB.filter(q => q !== player.id);
@@ -828,7 +822,6 @@
             let additional = unselectedQueue.splice(0, remainingNeeded);
             let finalPlayers = [...selectedPlayersToEnter, ...additional];
             
-            // Queue保存
             if (db.mode === 'combined') db.queueCombined = unselectedQueue;
             else if (currentViewRank === 'A') db.queueA = unselectedQueue;
             else db.queueB = unselectedQueue;
@@ -861,7 +854,6 @@
             queue.sort(() => Math.random() - 0.5);
             let playersToAssign = queue.splice(0, courtsToFill * 4);
             
-            // Queue保存
             if (db.mode === 'combined') db.queueCombined = queue;
             else if (currentViewRank === 'A') db.queueA = queue;
             else db.queueB = queue;
@@ -1000,7 +992,6 @@
             if (!area) return;
             
             let html = '';
-            // マスタは常にIDの小さい順で表示
             let sortedMaster = [...db.players].sort((a, b) => a.id - b.id);
             
             sortedMaster.forEach(p => {
@@ -1051,7 +1042,6 @@
                 saveStateToHistory();
                 p.name = newName;
                 
-                // ランクが変更され、かつ待機中の場合はキューを移動
                 if(newRank !== p.rank) {
                     p.rank = newRank;
                     if (db.mode === 'split' && p.status === 'waiting') {
@@ -1087,13 +1077,12 @@
             }
         }
 
-        function exportRosterCSV() {
+        function exportRosterCSV(filename = 'roster_master.csv') {
             if (!isAdmin) return;
             let hasActive = db.players.some(p => p.status !== 'inactive');
-            if(hasActive) return; // 念のため
+            if(hasActive) return; 
 
             let csv = "ID,名前,ランク\n";
-            // マスタはID順に出力
             let sortedMaster = [...db.players].sort((a, b) => a.id - b.id);
             sortedMaster.forEach(p => {
                 let rankStr = p.rank === 'A' ? '上級' : '中級';
@@ -1102,16 +1091,11 @@
             
             let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
             let blob = new Blob([bom, csv], { type: "text/csv" });
-            let file = new File([blob], `roster_master.csv`, { type: "text/csv" });
             
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ title: '名簿マスタ', files: [file] }).catch(err => console.log(err));
-            } else {
-                let url = URL.createObjectURL(blob);
-                let dlNode = document.createElement('a');
-                dlNode.href = url; dlNode.download = `roster_master.csv`;
-                document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
-            }
+            let url = URL.createObjectURL(blob);
+            let dlNode = document.createElement('a');
+            dlNode.href = url; dlNode.download = filename;
+            document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
         }
 
         function importRosterCSV(event) {
@@ -1150,7 +1134,7 @@
                     }
                     if(newPlayers.length > 0) {
                         saveStateToHistory();
-                        db.players = newPlayers; // マスタ全置換
+                        db.players = newPlayers; 
                         saveToCloud();
                         alert(`${newPlayers.length}名の名簿マスタをインポートしました。`);
                     } else {
@@ -1167,7 +1151,6 @@
         // ==========================================
         function render() {
             if (isAdmin) {
-                // 保守画面：モードとコート設定の反映
                 document.getElementById('settingMode').value = db.mode;
                 if (db.mode === 'combined') {
                     document.getElementById('courtSettingsCombined').style.display = 'flex';
@@ -1184,7 +1167,6 @@
                 let presentHtml = "";
                 let presentCount = 0;
 
-                // メンバー画面：合同なら全員、ランク別なら現在のランクの人のみ表示
                 let targetPlayers = db.players.filter(p => db.mode === 'combined' || p.rank === currentViewRank);
                 
                 let presentPlayers = targetPlayers.filter(p => p.status !== 'inactive');
@@ -1222,7 +1204,6 @@
                 document.getElementById('presentList').innerHTML = presentHtml;
                 document.getElementById('activeCount').innerText = presentCount;
                 
-                // メンバー画面のタイトル（切替UI）
                 let rosterPresentTitle = document.getElementById('rosterPresentTitle');
                 let rosterInactiveTitle = document.getElementById('rosterInactiveTitle');
                 if (db.mode === 'combined') {
@@ -1237,7 +1218,6 @@
                 renderHistoryOptions();
                 renderMaintenanceRoster();
 
-                // 進行中(参加中)のメンバーがいる場合はインポート/エクスポートをグレーアウト
                 let hasActive = db.players.some(p => p.status !== 'inactive');
                 let btnEx = document.getElementById('btnExportRoster');
                 let btnIm = document.getElementById('btnImportRoster');
@@ -1253,7 +1233,6 @@
                 }
             }
 
-            // 試合画面ヘッダーと背景色の設定
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             if (db.mode === 'combined') {
                 document.body.className = isAdmin ? 'admin-mode mode-combined' : 'viewer-mode mode-combined';
@@ -1265,7 +1244,6 @@
                 matchTitleEl.innerHTML = `<div class="clickable-title" onclick="toggleRankView()" style="display:flex; align-items:center; gap:8px;">⏩ 待機順 (${rankStr}) 🔄 <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
             }
 
-            // NEXT待機列全体
             let nextHtml = "";
             let activeQueue = getActiveQueue();
             if (activeQueue.length > 0) {
@@ -1285,7 +1263,6 @@
             }
             document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
-            // コートUI 
             let courtsHtml = "";
             let activeCourts = getActiveCourts();
             activeCourts.forEach((c, idx) => {
