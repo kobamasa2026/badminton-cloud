@@ -163,7 +163,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V51</h1>
+            <h1 class="header-title">V52</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -304,17 +304,17 @@
         </div>
     </main>
 
-    <!-- ★V51: PCでのクリック判定をより確実にするため data-target を付与 -->
+    <!-- ★V52: PCブラウザのセキュリティブロックを100%回避するリンク方式に修正 -->
     <nav class="bottom-nav">
-        <div class="nav-item active" data-target="matches">
+        <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo('matches'); return false;">
             <span class="nav-icon">🏸</span><span>試合</span>
-        </div>
-        <div class="nav-item admin-only" data-target="roster">
+        </a>
+        <a href="javascript:void(0);" class="nav-item admin-only" id="nav-roster" onclick="routeTo('roster'); return false;">
             <span class="nav-icon">👥</span><span>受付</span>
-        </div>
-        <div class="nav-item admin-only" data-target="maintenance">
+        </a>
+        <a href="javascript:void(0);" class="nav-item admin-only" id="nav-maintenance" onclick="routeTo('maintenance'); return false;">
             <span class="nav-icon">🛠</span><span>保守</span>
-        </div>
+        </a>
     </nav>
 
     <!-- モーダル -->
@@ -379,6 +379,9 @@
         const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
+        // ==========================================
+        // データクリーニング関数
+        // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
@@ -406,41 +409,19 @@
             return arr;
         };
 
-        function initRouter() {
-            let view = urlParams.get('view') || 'matches';
-            if (!isAdmin) view = 'matches'; 
-            if (view === 'history' || view === 'settings') view = 'maintenance';
-            activateView(view);
-            window.addEventListener('popstate', (e) => {
-                let stateView = e.state ? e.state.view : (new URLSearchParams(window.location.search).get('view') || 'matches');
-                if (!isAdmin) stateView = 'matches';
-                activateView(stateView);
-            });
-        }
-        
-        function routeTo(viewId) {
-            if (!isAdmin && viewId !== 'matches') return;
-            try {
-                const url = new URL(window.location.href);
-                url.searchParams.set('view', viewId);
-                window.history.pushState({ view: viewId }, '', url.toString());
-            } catch(e) {
-                // ローカルファイルでの実行時など
-            }
-            activateView(viewId);
-        }
-        
-        function activateView(viewId) {
+        // ★V52: タブ遷移システム（DOM操作とURL操作を安全に分離）
+        function switchTab(viewId) {
+            if (!isAdmin && viewId !== 'matches') viewId = 'matches';
+            
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const viewEl = document.getElementById(`view-${viewId}`);
-            // カスタムデータ属性でメニューをアクティブ化
-            const navEl = document.querySelector(`.nav-item[data-target="${viewId}"]`);
             
+            let viewEl = document.getElementById('view-' + viewId);
+            let navEl = document.getElementById('nav-' + viewId);
             if (viewEl) viewEl.classList.add('active');
             if (navEl) navEl.classList.add('active');
             
-            const headerViewName = document.getElementById('headerViewName');
+            let headerViewName = document.getElementById('headerViewName');
             if(headerViewName) {
                 if(viewId === 'matches') headerViewName.innerText = '試合';
                 else if(viewId === 'roster') headerViewName.innerText = '受付';
@@ -455,6 +436,35 @@
             window.scrollTo(0, 0);
         }
 
+        // ★V52: クリック時に呼ばれる関数
+        function routeTo(viewId) {
+            if (!isAdmin && viewId !== 'matches') return false;
+            
+            try {
+                // ローカルファイル実行時など、URL操作が禁止されている環境でのエラーを無視する
+                if (window.location.protocol !== 'file:') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('view', viewId);
+                    window.history.replaceState({ view: viewId }, '', url.toString());
+                }
+            } catch(e) {
+                // エラーが出ても気にせず画面の書き換えだけは実行する
+            }
+            
+            switchTab(viewId);
+            return false;
+        }
+
+        function initRouter() {
+            let view = urlParams.get('view') || 'matches';
+            if (view === 'history' || view === 'settings') view = 'maintenance';
+            switchTab(view);
+            window.addEventListener('popstate', (e) => {
+                let stateView = e.state ? e.state.view : (new URLSearchParams(window.location.search).get('view') || 'matches');
+                switchTab(stateView);
+            });
+        }
+
         let db = { 
             mode: 'combined', 
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
@@ -462,7 +472,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v51_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v52_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -543,18 +553,8 @@
             }
         });
 
-        // ★V51: PCでのクリックイベントを確実にするため、JS側でイベントを一括登録
         window.onload = function() {
             initRouter();
-            
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    let targetView = this.getAttribute('data-target');
-                    if (targetView) routeTo(targetView);
-                });
-            });
-
             updateUndoButton();
         };
 
@@ -609,11 +609,10 @@
 
         function getPlayerDisplayName(p) { return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name; }
 
+        // ★V52: 名簿上のランク（上級=A）であれば、どこのチームにいても常に赤文字にする
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            let colorStr = '#111827';
-            if (p.status !== 'inactive' && p.team) colorStr = p.team === 'A' ? '#9F1239' : '#111827';
-            else colorStr = p.rank === 'A' ? '#9F1239' : '#111827';
+            let colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
             return `<span style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
         }
         
