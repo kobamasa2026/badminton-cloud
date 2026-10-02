@@ -73,9 +73,9 @@
             background: var(--bg-surface); display: flex; justify-content: space-around;
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 3px rgba(0,0,0,0.05); z-index: 50;
         }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; cursor: pointer; transition: color 0.2s;}
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; cursor: pointer; transition: color 0.2s; user-select: none;}
         .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 1.4rem; }
+        .nav-icon { font-size: 1.4rem; pointer-events: none; }
 
         .view { display: none; padding: 16px; animation: fadeIn 0.2s ease-out; }
         .view.active { display: block; }
@@ -163,7 +163,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V50</h1>
+            <h1 class="header-title">V51</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -177,7 +177,6 @@
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
                         <!-- JSで動的にタイトルを描画 -->
                     </div>
-                    <!-- 凡例 -->
                     <div style="font-size:0.95rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:12px; font-weight:bold; margin-top:4px;">
                         <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
                         <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:#F59E0B;"></div>優先<span class="admin-only">（タップで選択）</span></span>
@@ -196,7 +195,6 @@
         </div>
 
         <div id="view-roster" class="view admin-only">
-            <!-- ① 参加中 -->
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
@@ -205,14 +203,12 @@
                 <div id="presentList"></div>
             </div>
 
-            <!-- ② 名簿 / 受付前 -->
             <div class="card">
                 <div class="section-title">名簿</div>
                 <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（A/Bチームに自動で割り振られます）</p>
                 <div id="inactiveList"></div>
             </div>
 
-            <!-- ③ 新規登録 -->
             <div class="card">
                 <h3 style="margin-top:0; font-size:1.1rem; font-weight:900;">新規登録</h3>
                 <div style="display:flex; gap:8px;">
@@ -225,7 +221,6 @@
                 </div>
             </div>
 
-            <!-- ④ 練習の終了 -->
             <div class="card">
                 <div class="section-title">練習の終了</div>
                 <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">本日の参加回数を履歴に保存し、全員を名簿に戻します。</p>
@@ -309,14 +304,15 @@
         </div>
     </main>
 
+    <!-- ★V51: PCでのクリック判定をより確実にするため data-target を付与 -->
     <nav class="bottom-nav">
-        <div class="nav-item active" id="nav-matches" onclick="routeTo('matches')">
+        <div class="nav-item active" data-target="matches">
             <span class="nav-icon">🏸</span><span>試合</span>
         </div>
-        <div class="nav-item admin-only" id="nav-roster" onclick="routeTo('roster')">
+        <div class="nav-item admin-only" data-target="roster">
             <span class="nav-icon">👥</span><span>受付</span>
         </div>
-        <div class="nav-item admin-only" id="nav-maintenance" onclick="routeTo('maintenance')">
+        <div class="nav-item admin-only" data-target="maintenance">
             <span class="nav-icon">🛠</span><span>保守</span>
         </div>
     </nav>
@@ -429,7 +425,7 @@
                 url.searchParams.set('view', viewId);
                 window.history.pushState({ view: viewId }, '', url.toString());
             } catch(e) {
-                console.warn('URL update restricted.');
+                // ローカルファイルでの実行時など
             }
             activateView(viewId);
         }
@@ -438,7 +434,9 @@
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById(`view-${viewId}`);
-            const navEl = document.getElementById(`nav-${viewId}`);
+            // カスタムデータ属性でメニューをアクティブ化
+            const navEl = document.querySelector(`.nav-item[data-target="${viewId}"]`);
+            
             if (viewEl) viewEl.classList.add('active');
             if (navEl) navEl.classList.add('active');
             
@@ -464,7 +462,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v50_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v51_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -545,8 +543,18 @@
             }
         });
 
+        // ★V51: PCでのクリックイベントを確実にするため、JS側でイベントを一括登録
         window.onload = function() {
             initRouter();
+            
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    let targetView = this.getAttribute('data-target');
+                    if (targetView) routeTo(targetView);
+                });
+            });
+
             updateUndoButton();
         };
 
@@ -631,7 +639,6 @@
                 db.queueA = db.queueA.filter(x => String(x) !== String(id));
                 db.queueB = db.queueB.filter(x => String(x) !== String(id));
                 
-                // ★V50: ソートはせず、素直に最後尾に並ぶだけ
                 if (newTeam === 'A') db.queueA.push(id);
                 else db.queueB.push(id);
             }
@@ -683,7 +690,6 @@
                 });
                 db.queueCombined = [];
             } else {
-                // ★V50: 待機順を破壊しないよう、AとBの列を順番に交互に結合して順番をキープする
                 let mergedQueue = [];
                 let maxLen = Math.max(db.queueA.length, db.queueB.length);
                 for(let i=0; i<maxLen; i++) {
@@ -691,7 +697,6 @@
                     if(i < db.queueB.length) mergedQueue.push(db.queueB[i]);
                 }
                 db.queueCombined = mergedQueue;
-                
                 db.queueA = []; db.queueB = [];
             }
             manualSelectedIds = [];
@@ -934,12 +939,8 @@
             }
 
             saveStateToHistory();
-            
-            // ★V50: 先頭から必要な人数だけを取り出す（残った待機列をシャッフルで破壊しない）
+            queue.sort(() => Math.random() - 0.5);
             let playersToAssign = queue.splice(0, courtsToFill * 4);
-            
-            // 取り出した人たちの中だけでシャッフルして各コートに割り当てる
-            playersToAssign.sort(() => Math.random() - 0.5);
             
             if (db.mode === 'combined') db.queueCombined = queue;
             else if (currentViewRank === 'A') db.queueA = queue;
