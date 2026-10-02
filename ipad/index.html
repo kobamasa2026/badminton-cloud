@@ -73,14 +73,16 @@
             background: var(--bg-surface); display: flex; justify-content: space-around;
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 3px rgba(0,0,0,0.05); z-index: 50;
         }
+        
+        /* ★V55: ナビゲーションアイテムを横並び（row）に変更 */
         .nav-item { 
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; 
+            flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: center; 
+            color: var(--text-sub); text-decoration: none; font-size: 0.9rem; font-weight: bold; gap: 6px; 
             cursor: pointer; transition: color 0.2s; user-select: none;
             background: transparent; border: none; padding: 0; margin: 0; appearance: none; -webkit-appearance: none;
         }
         .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 1.4rem; pointer-events: none; }
+        .nav-icon { font-size: 1.2rem; pointer-events: none; }
 
         .view { display: none; padding: 16px; animation: fadeIn 0.2s ease-out; }
         .view.active { display: block; }
@@ -168,7 +170,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V54</h1>
+            <h1 class="header-title">V55</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -383,9 +385,6 @@
         const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
-        // ==========================================
-        // データクリーニング関数
-        // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
@@ -433,7 +432,6 @@
             
             const headerViewName = document.getElementById('headerViewName');
             if(headerViewName) {
-                // ★V54: アイコン付きのタイトルに変更
                 if(viewId === 'matches') headerViewName.innerHTML = '🏸 試合';
                 else if(viewId === 'roster') headerViewName.innerHTML = '👥 受付';
                 else if(viewId === 'maintenance') headerViewName.innerHTML = '🛠 保守';
@@ -465,7 +463,6 @@
             activateView(view);
         }
 
-        // ★V54: 一般参加者モードの時は、不要なメニューボタンをDOMから完全に消去して押せなくする
         window.onload = function() {
             if (!isAdmin) {
                 let navRoster = document.querySelector('.nav-item[data-target="roster"]');
@@ -494,7 +491,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v54_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v55_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -626,7 +623,6 @@
 
         function getPlayerDisplayName(p) { return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name; }
 
-        // ★V54: 元々のランク（p.rank）が 'A' なら常にえんじ色（#9F1239）にする
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
             let colorStr = p.rank === 'A' ? '#9F1239' : '#111827';
@@ -751,7 +747,8 @@
                         let records = {};
                         db.players.forEach(p => {
                             if (p.dailyNum) { 
-                                records[p.id] = { name: p.name, playCount: p.playCount, rank: p.rank, dailyNum: p.dailyNum };
+                                // ★V55: マスタのrankと当日のteamを両方保存する
+                                records[p.id] = { name: p.name, playCount: p.playCount, rank: p.rank, team: p.team || p.rank, dailyNum: p.dailyNum };
                             }
                         });
                         db.history[promptDate] = records;
@@ -1041,11 +1038,16 @@
             let html = '';
             arr.forEach(r => {
                 let rnk = r.rank === 'A' ? '上級' : '中級';
+                // ★V55: マスタのランクと、その日の最終チームを画面に両方表示する
+                let tm = r.team ? (r.team === 'A' ? 'A' : 'B') : (r.rank === 'A' ? 'A' : 'B');
+                
                 html += `
                 <div class="list-row">
                     <div class="member-name">
                         <span style="color:var(--primary); font-size:0.9em; margin-right:4px;">${r.dailyNum}</span>
-                        ${r.name} <span class="rank-badge rank-${r.rank}" style="margin-left:8px;">${rnk}</span>
+                        ${r.name} 
+                        <span class="rank-badge rank-${r.rank}" style="margin-left:8px;">${rnk}</span>
+                        <span class="rank-badge rank-${r.team || r.rank}" style="margin-left:4px;">${tm}チーム</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px;">
                         <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', -1)">-</button>
@@ -1073,6 +1075,7 @@
             }
         }
 
+        // ★V55: CSV出力に「最終チーム」の項目を追加
         function exportHistoryCSV() {
             if (!isAdmin) return;
             let date = document.getElementById('historyDateSelect').value;
@@ -1082,11 +1085,12 @@
             let arr = Object.keys(records).map(id => ({id: id, ...records[id]}));
             arr.sort((a,b) => (a.dailyNum || 0) - (b.dailyNum || 0)); 
             
-            let csv = "受付番号,名前,ランク,プレイ回数\n";
+            let csv = "受付番号,名前,ランク,最終チーム,プレイ回数\n";
             arr.forEach(r => {
                 let rankStr = r.rank === 'A' ? '上級' : '中級';
+                let teamStr = r.team ? (r.team === 'A' ? 'Aチーム' : 'Bチーム') : (r.rank === 'A' ? 'Aチーム' : 'Bチーム');
                 let num = r.dailyNum || '';
-                csv += `${num},${r.name},${rankStr},${r.playCount}\n`;
+                csv += `${num},${r.name},${rankStr},${teamStr},${r.playCount}\n`;
             });
             
             let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
@@ -1114,7 +1118,6 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
-                // ★V54: マスタ照会画面でも上級者の名前を赤色にする
                 let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
                 html += `
@@ -1122,8 +1125,8 @@
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
                         <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
-                        <div style="width:52px; text-align:center; flex-shrink:0;">
-                            <span class="rank-badge rank-${p.rank}" style="white-space:nowrap; display:inline-block;">${rnk}</span>
+                        <div style="width:40px; text-align:center; flex-shrink:0;">
+                            <span class="rank-badge rank-${p.rank}">${rnk}</span>
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-shrink:0;">
