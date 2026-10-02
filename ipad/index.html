@@ -162,7 +162,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V40</h1>
+            <h1 class="header-title">V41</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -170,9 +170,6 @@
     </header>
 
     <main>
-        <!-- ==================================== -->
-        <!-- 1. 試合ビュー -->
-        <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
@@ -197,13 +194,8 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
-
-        <!-- ==================================== -->
-        <!-- 2. 受付ビュー                         -->
-        <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
-            
-            <!-- ① 参加中（全員表示） -->
+            <!-- ① 参加中 -->
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
@@ -212,7 +204,7 @@
                 <div id="presentList"></div>
             </div>
 
-            <!-- ② 名簿 / 受付前（全員表示） -->
+            <!-- ② 名簿 / 受付前 -->
             <div class="card">
                 <div class="section-title">名簿</div>
                 <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（Aチーム/Bチームに自動で割り振られます）</p>
@@ -240,12 +232,7 @@
             </div>
         </div>
 
-
-        <!-- ==================================== -->
-        <!-- 3. 保守ビュー (管理者のみ)             -->
-        <!-- ==================================== -->
         <div id="view-maintenance" class="view admin-only">
-            
             <!-- ① 運用モードとコート設定 -->
             <div class="card">
                 <div class="section-title">運用モードとコート数</div>
@@ -259,7 +246,6 @@
                 
                 <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
                 
-                <!-- 合同用コート設定 -->
                 <div id="courtSettingsCombined" style="display:none; justify-content:space-between; align-items:center;">
                     <span style="font-weight:bold; font-size:1.1rem;">合同コート数</span>
                     <div style="display:flex; align-items:center; gap:16px;">
@@ -269,7 +255,6 @@
                     </div>
                 </div>
 
-                <!-- チーム別コート設定 -->
                 <div id="courtSettingsSplit" style="display:none; flex-direction:column; gap:16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:bold; font-size:1.1rem;">Aチーム コート数</span>
@@ -304,11 +289,10 @@
                 <div id="maintenanceRosterArea"></div>
             </div>
 
-            <!-- ③ データ管理（履歴出力・初期化） -->
+            <!-- ③ データ管理 -->
             <div class="card" style="border: 2px solid var(--border);">
                 <div class="section-title">データ管理</div>
                 
-                <!-- 履歴グループ -->
                 <h4 style="margin: 0 0 8px 0; font-size: 1rem; color: var(--text-main);">📅 参加者履歴</h4>
                 <p style="font-size:0.8rem; color:var(--text-sub); margin-top:-4px; margin-bottom:12px; font-weight:bold;">選択した日付の履歴をCSVファイルで出力できます。</p>
                 <div style="display:flex; gap:8px; margin-bottom:16px;">
@@ -320,14 +304,12 @@
 
                 <hr style="border:none; border-top:2px solid var(--border); margin:24px 0;">
                 
-                <!-- 初期化グループ -->
                 <h4 style="margin: 0 0 12px 0; font-size: 1rem; color: #DC2626;">⚠️ システムリセット</h4>
                 <button class="btn-danger" onclick="confirmResetAll()">全データ初期化 (全削除)</button>
             </div>
         </div>
     </main>
 
-    <!-- タブメニュー -->
     <nav class="bottom-nav">
         <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
@@ -340,7 +322,7 @@
         </a>
     </nav>
 
-    <!-- モーダル（状態変更用） -->
+    <!-- モーダル -->
     <div class="modal-overlay admin-only" id="statusModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
@@ -387,83 +369,51 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        // ==========================================
-        // 2. 権限とルーム（団体）管理
-        // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
-        
-        const allowedGroups = {
-            'yyc': 'secret'   // 第1グループ
-        };
-        
+        const allowedGroups = { 'yyc': 'secret' };
         const groupId = urlParams.get('g');
 
         if (!groupId || !allowedGroups.hasOwnProperty(groupId)) {
             document.body.innerHTML = `
                 <div style="padding: 40px 20px; text-align: center; font-size: 1.2rem; font-weight: bold; color: #DC2626;">
-                    【エラー】無効なアクセスです。<br><br>
-                    <span style="font-size: 0.9rem; color: #6B7280;">正しい団体用のURL（例: ?g=yyc）からアクセスしてください。</span>
+                    【エラー】無効なアクセスです。<br><span style="font-size: 0.9rem; color: #6B7280;">正しいURLからアクセスしてください。</span>
                 </div>`;
             throw new Error("Invalid Group ID");
         }
         
         const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
-
-        // 保存先 (ipad用)
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
-        // ★V40 強力なデータクリーニング関数群★
+        // ★V41 強力なデータクリーニング関数群★
+        // （Firebaseの型崩れ・幽霊データを完全に無効化する）
         // ==========================================
-        function cleanQueue(qData) {
-            if (Array.isArray(qData)) return qData.filter(id => id !== null && id !== undefined);
-            if (typeof qData === 'object' && qData !== null) return Object.values(qData).filter(id => id !== null && id !== undefined);
-            return [];
-        }
+        const toNumArray = (arr) => {
+            if (!arr) return [];
+            let temp = Array.isArray(arr) ? arr : Object.values(arr);
+            return temp.filter(x => x !== null && x !== undefined && x !== "").map(Number);
+        };
 
-        function cleanCourts(courtsData, maxNum) {
+        const cleanCourts = (courtsData, maxNum) => {
             let arr = [];
-            if (Array.isArray(courtsData)) {
-                arr = courtsData.filter(c => c !== null && c !== undefined);
-            } else if (typeof courtsData === 'object' && courtsData !== null) {
-                arr = Object.values(courtsData).filter(c => c !== null && c !== undefined);
+            if (courtsData) {
+                arr = Array.isArray(courtsData) ? courtsData : Object.values(courtsData);
+                arr = arr.filter(c => c != null);
             }
-            
-            // ★V40: どんな形にデータが崩れていても必ず正常な配列に戻す
             arr.forEach((c, i) => {
-                if (!c.p) {
-                    c.p = [];
-                } else if (!Array.isArray(c.p)) {
-                    if (typeof c.p === 'object' && c.p !== null) {
-                        c.p = Object.values(c.p);
-                    } else {
-                        c.p = [];
-                    }
-                }
-                // nullやundefinedを排除
-                c.p = c.p.filter(pid => pid !== null && pid !== undefined);
-                c.id = i + 1; 
+                c.id = i + 1;
+                c.p = toNumArray(c.p); // 確実にNumberの配列にする
             });
-
-            // 設定数に合わせる
             let targetMax = parseInt(maxNum, 10) || 0;
-            while (arr.length < targetMax) {
-                arr.push({ id: arr.length + 1, p: [], selected: false });
-            }
-            while (arr.length > targetMax) {
-                arr.pop();
-            }
+            while (arr.length < targetMax) arr.push({ id: arr.length + 1, p: [], selected: false });
+            while (arr.length > targetMax) arr.pop();
             return arr;
-        }
+        };
 
-        // ==========================================
-        // 3. ルーティング
-        // ==========================================
         function initRouter() {
             let view = urlParams.get('view') || 'matches';
             if (!isAdmin) view = 'matches'; 
             if (view === 'history' || view === 'settings') view = 'maintenance';
-            
             activateView(view);
             window.addEventListener('popstate', (e) => {
                 let stateView = e.state ? e.state.view : (new URLSearchParams(window.location.search).get('view') || 'matches');
@@ -501,13 +451,9 @@
             } else {
                 document.body.classList.remove('view-matches-active');
             }
-            
             window.scrollTo(0, 0);
         }
 
-        // ==========================================
-        // 4. データ構造とUI状態
-        // ==========================================
         let db = { 
             mode: 'combined', 
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
@@ -515,102 +461,89 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v40_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v41_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
-        
         let currentViewRank = 'A'; 
 
         dbRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                let rawPlayers = data.players;
-                let playersArr = [];
-                if (Array.isArray(rawPlayers)) {
-                    playersArr = rawPlayers.filter(p => p !== null && p !== undefined);
-                } else if (typeof rawPlayers === 'object' && rawPlayers !== null) {
-                    playersArr = Object.values(rawPlayers).filter(p => p !== null && p !== undefined);
-                }
-                db.players = playersArr;
-
-                db.players.forEach(p => {
+            try {
+                const data = snapshot.val() || {};
+                
+                // 1. Playersの厳格なクリーニング
+                let rawPlayers = data.players || [];
+                let pArr = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers);
+                db.players = pArr.filter(p => p != null).map(p => {
+                    p.id = Number(p.id);
                     if (!p.rank) p.rank = 'B';
                     if (p.gender) delete p.gender;
                     if (p.status !== 'inactive' && !p.team) p.team = p.rank;
+                    return p;
                 });
-                
+
+                // 2. Settings
                 db.mode = data.mode || 'combined';
                 db.maxCourtsCombined = parseInt(data.maxCourtsCombined || data.maxCourts || 6, 10);
                 db.maxCourtsA = parseInt(data.maxCourtsA || 3, 10);
                 db.maxCourtsB = parseInt(data.maxCourtsB || 3, 10);
-                
-                db.queueCombined = cleanQueue(data.queueCombined || data.queue);
-                db.queueA = cleanQueue(data.queueA);
-                db.queueB = cleanQueue(data.queueB);
-                
+
+                // 3. Queueのクリーニング（過去の遺物 data.queue を参照しつつ、完全に数字配列化）
+                db.queueCombined = toNumArray(data.queueCombined !== undefined ? data.queueCombined : data.queue);
+                db.queueA = toNumArray(data.queueA);
+                db.queueB = toNumArray(data.queueB);
+
+                // 4. Courtsのクリーニング（データが壊れていても必ず再生する）
                 db.courtsCombined = cleanCourts(data.courtsCombined || data.courts, db.maxCourtsCombined);
                 db.courtsA = cleanCourts(data.courtsA, db.maxCourtsA);
                 db.courtsB = cleanCourts(data.courtsB, db.maxCourtsB);
-                
+
                 db.dailyCounter = data.dailyCounter || 1;
                 db.history = data.history || {};
 
-                // ★V40 幽霊バグ（Limbo）の自動救済処理
+                // 5. 幽霊バグ（Limbo）の完全防止機能
                 let activePlayersInCourts = new Set();
                 [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                     arr.forEach(c => {
-                        if (c.p && Array.isArray(c.p)) {
-                            c.p.forEach(pid => activePlayersInCourts.add(pid));
-                        }
+                        c.p.forEach(pid => activePlayersInCourts.add(pid));
                     });
                 });
                 
                 db.players.forEach(p => {
-                    // コートにいないのに「試合中」になっている人を待機列に救出
                     if (p.status === 'playing' && !activePlayersInCourts.has(p.id)) {
                         p.status = 'waiting';
                         let targetQ = db.mode === 'combined' ? db.queueCombined : (p.team === 'A' ? db.queueA : db.queueB);
                         if (!targetQ.includes(p.id)) targetQ.push(p.id);
                     }
                 });
-                
-                if (isInitialLoad) {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    isInitialLoad = false;
-                }
-                
+
                 let activeQ = getActiveQueue();
                 manualSelectedIds = manualSelectedIds.filter(id => activeQ.includes(id));
                 render();
-            } else {
-                if (isAdmin) {
-                    db.courtsCombined = cleanCourts([], db.maxCourtsCombined);
-                    db.courtsA = cleanCourts([], db.maxCourtsA);
-                    db.courtsB = cleanCourts([], db.maxCourtsB);
-                    saveToCloud();
+            } catch (err) {
+                console.error("Firebase Data Read Error:", err);
+            } finally {
+                if (isInitialLoad) {
                     document.getElementById('loadingOverlay').style.display = 'none';
                     isInitialLoad = false;
-                    render();
-                } else {
-                    document.getElementById('loadingMsg').innerText = "データがありません。\n監督の初期設定をお待ちください。";
                 }
             }
         });
 
         window.onload = function() {
             initRouter();
-            let saved = localStorage.getItem(STORAGE_KEY);
-            if (saved && !isInitialLoad && isAdmin) {
-                // クラウド優先
-            }
             updateUndoButton();
         };
 
+        // ★V41: 古い亡霊データをクラウドから完全消去しながら保存する
         function saveToCloud() {
             if (isAdmin) {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
-                dbRef.set(db);
+                let payload = Object.assign({}, db);
+                payload.queue = null;      // 旧データ消去
+                payload.courts = null;     // 旧データ消去
+                payload.maxCourts = null;  // 旧データ消去
+                dbRef.set(payload);
             }
         }
 
@@ -636,17 +569,9 @@
         function updateUndoButton() { 
             if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0; 
         }
-
-        // ==========================================
-        // ユーティリティ
-        // ==========================================
         
-        function getActiveQueue() {
-            return db.mode === 'combined' ? db.queueCombined : (currentViewRank === 'A' ? db.queueA : db.queueB);
-        }
-        function getActiveCourts() {
-            return db.mode === 'combined' ? db.courtsCombined : (currentViewRank === 'A' ? db.courtsA : db.courtsB);
-        }
+        function getActiveQueue() { return db.mode === 'combined' ? db.queueCombined : (currentViewRank === 'A' ? db.queueA : db.queueB); }
+        function getActiveCourts() { return db.mode === 'combined' ? db.courtsCombined : (currentViewRank === 'A' ? db.courtsA : db.courtsB); }
         function toggleRankView() {
             if (db.mode !== 'split') return;
             currentViewRank = currentViewRank === 'A' ? 'B' : 'A';
@@ -654,18 +579,13 @@
             render();
         }
 
-        function getPlayerDisplayName(p) {
-            return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name;
-        }
+        function getPlayerDisplayName(p) { return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name; }
 
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
             let colorStr = '#111827';
-            if (p.status !== 'inactive' && p.team) {
-                colorStr = p.team === 'A' ? '#DC2626' : '#111827';
-            } else {
-                colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
-            }
+            if (p.status !== 'inactive' && p.team) colorStr = p.team === 'A' ? '#DC2626' : '#111827';
+            else colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
             return `<span style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
         }
         
@@ -705,10 +625,6 @@
             saveToCloud();
         }
 
-        // ==========================================
-        // アクション関数群
-        // ==========================================
-        
         function confirmResetAll() {
             if (!isAdmin) return;
             let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
@@ -733,7 +649,6 @@
 
         function changeOperationMode(newMode) {
             if (!isAdmin || newMode === db.mode) return;
-            
             if (db.players.some(p => p.status === 'playing')) {
                 alert("試合中(IN)のメンバーがいるため運用モードを変更できません。\n全員を待機状態(OUT)にしてください。");
                 document.getElementById('settingMode').value = db.mode;
@@ -759,13 +674,10 @@
                 db.queueCombined.sort((id1, id2) => {
                     let p1 = db.players.find(x => x.id === id1);
                     let p2 = db.players.find(x => x.id === id2);
-                    let n1 = p1 ? (p1.dailyNum || 999) : 999;
-                    let n2 = p2 ? (p2.dailyNum || 999) : 999;
-                    return n1 - n2;
+                    return (p1 ? (p1.dailyNum || 999) : 999) - (p2 ? (p2.dailyNum || 999) : 999);
                 });
                 db.queueA = []; db.queueB = [];
             }
-            
             manualSelectedIds = [];
             saveToCloud();
         }
@@ -855,7 +767,6 @@
                 player.dailyNum = db.dailyCounter++;
             }
             player.status = 'waiting';
-            
             player.team = player.rank; 
             
             if (db.mode === 'combined') db.queueCombined.push(id);
@@ -870,11 +781,9 @@
             let player = db.players.find(p => p.id === id);
             if (!player) return;
             
-            // ★V40 手動救出ボタン（幽霊状態の解除用）
             if (player.status === 'playing') {
-                if (confirm("このメンバーは試合中になっています。強制的に「待機」に戻しますか？\n（※画面がおかしくなった場合の救済措置です）")) {
+                if (confirm("このメンバーは試合中になっています。強制的に「待機」に戻しますか？\n（※システム修復用の救済措置です）")) {
                     saveStateToHistory();
-                    // 全コートから強制削除
                     [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                         arr.forEach(c => {
                             if (c.p) c.p = c.p.filter(pid => pid !== id);
@@ -1033,8 +942,6 @@
         function reshuffleSelectedCourts() {
             if (!isAdmin) return;
             let courts = getActiveCourts();
-            
-            // ★V40: 1人以上いればシャッフル可能にする（データ欠損対策）
             let selected = courts.filter(c => c.selected && c.p && c.p.length > 0);
             if (selected.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
 
@@ -1045,9 +952,8 @@
             
             let splitIndex = 0;
             selected.forEach((c) => { 
-                // そのコートに元々いた人数分だけ戻す（4人未満のバグコート対応）
                 let cap = Math.min(4, targetPlayers.length - splitIndex);
-                if (cap < 4 && targetPlayers.length > 4) cap = 4; // 基本は4人を詰める
+                if (cap < 4 && targetPlayers.length > 4) cap = 4;
                 c.p = targetPlayers.slice(splitIndex, splitIndex + cap);
                 splitIndex += cap;
             });
@@ -1057,7 +963,6 @@
         // ==========================================
         // 保守・履歴・名簿管理機能
         // ==========================================
-        
         function renderHistoryOptions() {
             let select = document.getElementById('historyDateSelect');
             if (!select) return;
@@ -1135,21 +1040,13 @@
             
             let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
             let blob = new Blob([bom, csv], { type: "text/csv" });
-            let file = new File([blob], `history_${date}.csv`, { type: "text/csv" });
             
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ title: `参加者履歴_${date}`, files: [file] }).catch(err => console.log(err));
-            } else {
-                let url = URL.createObjectURL(blob);
-                let dlNode = document.createElement('a');
-                dlNode.href = url; dlNode.download = `history_${date}.csv`;
-                document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
-            }
+            let url = URL.createObjectURL(blob);
+            let dlNode = document.createElement('a');
+            dlNode.href = url; dlNode.download = `history_${date}.csv`;
+            document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
         }
 
-        // ==========================================
-        // 名簿マスタ（全フィールド編集・CSV入出力）
-        // ==========================================
         let currentEditMemberId = null;
 
         function renderMaintenanceRoster() {
@@ -1161,7 +1058,6 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
-                
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
@@ -1242,7 +1138,6 @@
             
             let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
             let blob = new Blob([bom, csv], { type: "text/csv" });
-            
             let url = URL.createObjectURL(blob);
             let dlNode = document.createElement('a');
             dlNode.href = url; dlNode.download = filename;
@@ -1301,196 +1196,200 @@
         // 6. UIの描画
         // ==========================================
         function render() {
-            if (isAdmin) {
-                document.body.classList.toggle('admin-mode', isAdmin);
-                document.body.classList.toggle('viewer-mode', !isAdmin);
+            try {
+                if (isAdmin) {
+                    document.body.classList.toggle('admin-mode', isAdmin);
+                    document.body.classList.toggle('viewer-mode', !isAdmin);
 
-                document.getElementById('settingMode').value = db.mode;
+                    document.getElementById('settingMode').value = db.mode;
+                    if (db.mode === 'combined') {
+                        document.getElementById('courtSettingsCombined').style.display = 'flex';
+                        document.getElementById('courtSettingsSplit').style.display = 'none';
+                        document.getElementById('settingCourtCountCombined').innerText = db.maxCourtsCombined;
+                    } else {
+                        document.getElementById('courtSettingsCombined').style.display = 'none';
+                        document.getElementById('courtSettingsSplit').style.display = 'flex';
+                        document.getElementById('settingCourtCountA').innerText = db.maxCourtsA;
+                        document.getElementById('settingCourtCountB').innerText = db.maxCourtsB;
+                    }
+
+                    let inactiveHtml = "";
+                    let presentHtml = "";
+                    let presentCount = 0;
+
+                    let presentPlayers = db.players.filter(p => p.status !== 'inactive');
+                    presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
+
+                    presentPlayers.forEach(p => {
+                        let pQueue = db.mode === 'combined' ? db.queueCombined : (p.team === 'A' ? db.queueA : db.queueB);
+                        let isNext = (p.status === 'waiting' && pQueue.indexOf(p.id) < 4 && pQueue.indexOf(p.id) !== -1);
+                        let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
+                        
+                        let dotHtml = p.status === 'playing' 
+                            ? '<div class="status-dot dot-playing"></div>' 
+                            : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
+                        
+                        let tmStr = p.team === 'A' ? 'Aチーム' : 'Bチーム';
+                        let teamBtn = isAdmin 
+                            ? `<button class="rank-badge rank-${p.team}" onclick="event.stopPropagation(); toggleTeam(${p.id})" style="cursor:pointer; width:68px;">${tmStr} 🔄</button>` 
+                            : `<span class="rank-badge rank-${p.team}" style="display:inline-block; width:56px; text-align:center;">${tmStr}</span>`;
+                        
+                        presentHtml += `
+                            <div class="list-row" onclick="openPlayerMenu(${p.id})">
+                                <div class="member-info" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                    ${dotHtml}
+                                    <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}</div>
+                                        <div style="margin-left:8px; flex-shrink:0;">${teamBtn}</div>
+                                    </div>
+                                </div>
+                                <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:80px; text-align:right;">
+                                    <span>${statusTxt}</span><span style="display:inline-block; width:36px;">(${p.playCount}回)</span>
+                                </div>
+                            </div>`;
+                        presentCount++;
+                    });
+
+                    db.players.filter(p => p.status === 'inactive').forEach(p => {
+                        let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
+                        let rnkStr = p.rank === 'A' ? '上級' : '中級';
+                        let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnkStr}</span>`;
+
+                        inactiveHtml += `
+                            <div class="list-row" onclick="checkIn(${p.id})">
+                                <div class="member-info" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                    <div style="width:14px; height:14px; flex-shrink:0;"></div>
+                                    <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
+                                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}${breakBadge}</div>
+                                        <div style="margin-left:8px; flex-shrink:0;">${rankBadge}</div>
+                                    </div>
+                                </div>
+                                <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:60px; text-align:right;">
+                                    <span style="color:var(--primary); font-weight:900;">＋ 受付</span>
+                                </div>
+                            </div>`;
+                    });
+
+                    document.getElementById('inactiveList').innerHTML = inactiveHtml;
+                    document.getElementById('presentList').innerHTML = presentHtml;
+                    
+                    document.getElementById('rosterPresentTitle').innerHTML = `参加中 (<span style="color:var(--primary);">${presentCount}</span>)`;
+                    document.getElementById('rosterInactiveTitle').innerHTML = `名簿`;
+                    
+                    renderHistoryOptions();
+                    renderMaintenanceRoster();
+
+                    let hasActive = db.players.some(p => p.status !== 'inactive');
+                    let btnEx = document.getElementById('btnExportRoster');
+                    let btnIm = document.getElementById('btnImportRoster');
+                    if(btnEx) {
+                        btnEx.disabled = hasActive;
+                        btnEx.style.opacity = hasActive ? "0.4" : "1";
+                        btnEx.style.cursor = hasActive ? "not-allowed" : "pointer";
+                    }
+                    if(btnIm) {
+                        btnIm.disabled = hasActive;
+                        btnIm.style.opacity = hasActive ? "0.4" : "1";
+                        btnIm.style.cursor = hasActive ? "not-allowed" : "pointer";
+                    }
+                }
+
+                let matchTitleEl = document.getElementById('matchHeaderTitle');
+                document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
+
                 if (db.mode === 'combined') {
-                    document.getElementById('courtSettingsCombined').style.display = 'flex';
-                    document.getElementById('courtSettingsSplit').style.display = 'none';
-                    document.getElementById('settingCourtCountCombined').innerText = db.maxCourtsCombined;
-                } else {
-                    document.getElementById('courtSettingsCombined').style.display = 'none';
-                    document.getElementById('courtSettingsSplit').style.display = 'flex';
-                    document.getElementById('settingCourtCountA').innerText = db.maxCourtsA;
-                    document.getElementById('settingCourtCountB').innerText = db.maxCourtsB;
-                }
-
-                let inactiveHtml = "";
-                let presentHtml = "";
-                let presentCount = 0;
-
-                let presentPlayers = db.players.filter(p => p.status !== 'inactive');
-                presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
-
-                presentPlayers.forEach(p => {
-                    let pQueue = db.mode === 'combined' ? db.queueCombined : (p.team === 'A' ? db.queueA : db.queueB);
-                    let isNext = (p.status === 'waiting' && pQueue.indexOf(p.id) < 4 && pQueue.indexOf(p.id) !== -1);
-                    let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
-                    
-                    let dotHtml = p.status === 'playing' 
-                        ? '<div class="status-dot dot-playing"></div>' 
-                        : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
-                    
-                    let tmStr = p.team === 'A' ? 'Aチーム' : 'Bチーム';
-                    let teamBtn = isAdmin 
-                        ? `<button class="rank-badge rank-${p.team}" onclick="event.stopPropagation(); toggleTeam(${p.id})" style="cursor:pointer; width:68px;">${tmStr} 🔄</button>` 
-                        : `<span class="rank-badge rank-${p.team}" style="display:inline-block; width:56px; text-align:center;">${tmStr}</span>`;
-                    
-                    presentHtml += `
-                        <div class="list-row" onclick="openPlayerMenu(${p.id})">
-                            <div class="member-info" style="flex:1; display:flex; align-items:center; min-width:0;">
-                                ${dotHtml}
-                                <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
-                                    <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}</div>
-                                    <div style="margin-left:8px; flex-shrink:0;">${teamBtn}</div>
-                                </div>
-                            </div>
-                            <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:80px; text-align:right;">
-                                <span>${statusTxt}</span><span style="display:inline-block; width:36px;">(${p.playCount}回)</span>
-                            </div>
-                        </div>`;
-                    presentCount++;
-                });
-
-                db.players.filter(p => p.status === 'inactive').forEach(p => {
-                    let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
-                    let rnkStr = p.rank === 'A' ? '上級' : '中級';
-                    let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnkStr}</span>`;
-
-                    inactiveHtml += `
-                        <div class="list-row" onclick="checkIn(${p.id})">
-                            <div class="member-info" style="flex:1; display:flex; align-items:center; min-width:0;">
-                                <div style="width:14px; height:14px; flex-shrink:0;"></div>
-                                <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
-                                    <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}${breakBadge}</div>
-                                    <div style="margin-left:8px; flex-shrink:0;">${rankBadge}</div>
-                                </div>
-                            </div>
-                            <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:60px; text-align:right;">
-                                <span style="color:var(--primary); font-weight:900;">＋ 受付</span>
-                            </div>
-                        </div>`;
-                });
-
-                document.getElementById('inactiveList').innerHTML = inactiveHtml;
-                document.getElementById('presentList').innerHTML = presentHtml;
-                
-                document.getElementById('rosterPresentTitle').innerHTML = `参加中 (<span style="color:var(--primary);">${presentCount}</span>)`;
-                document.getElementById('rosterInactiveTitle').innerHTML = `名簿`;
-                
-                renderHistoryOptions();
-                renderMaintenanceRoster();
-
-                let hasActive = db.players.some(p => p.status !== 'inactive');
-                let btnEx = document.getElementById('btnExportRoster');
-                let btnIm = document.getElementById('btnImportRoster');
-                if(btnEx) {
-                    btnEx.disabled = hasActive;
-                    btnEx.style.opacity = hasActive ? "0.4" : "1";
-                    btnEx.style.cursor = hasActive ? "not-allowed" : "pointer";
-                }
-                if(btnIm) {
-                    btnIm.disabled = hasActive;
-                    btnIm.style.opacity = hasActive ? "0.4" : "1";
-                    btnIm.style.cursor = hasActive ? "not-allowed" : "pointer";
-                }
-            }
-
-            let matchTitleEl = document.getElementById('matchHeaderTitle');
-            document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
-
-            if (db.mode === 'combined') {
-                document.body.classList.add('mode-combined');
-                matchTitleEl.innerHTML = `
-                    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 12px; font-size:1.4rem; font-weight:900; width:100%; padding:4px 0;">
-                        <span>⏩ 待機順 (合同)</span>
-                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
-                    </div>`;
-            } else {
-                let teamStr = currentViewRank === 'A' ? 'Aチーム' : 'Bチーム';
-                let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
-                document.body.classList.add(bodyClass);
-                matchTitleEl.innerHTML = `
-                    <div class="clickable-title" onclick="toggleRankView()">
-                        <span>⏩ 待機順 (${teamStr}) 🔄</span>
-                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
-                    </div>`;
-            }
-
-            let nextHtml = "";
-            let activeQueue = getActiveQueue();
-            if (activeQueue.length > 0) {
-                activeQueue.forEach((id, index) => {
-                    let p = db.players.find(pl => pl.id === id);
-                    if (!p) return;
-                    let isTop4 = index < 4;
-                    let isSelected = isAdmin && manualSelectedIds.includes(id);
-                    let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "");
-                    
-                    nextHtml += `
-                        <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
-                            <div class="next-slot-name">${formatNameHTML(p)}</div>
-                            <div style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
-                        </div>`;
-                });
-            }
-            document.getElementById('nextQueueUI').innerHTML = nextHtml;
-
-            let courtsHtml = "";
-            let activeCourts = getActiveCourts();
-            activeCourts.forEach((c, idx) => {
-                // ★V40: どんなにデータが壊れていても必ず配列として安全に処理
-                if (!c || !c.p || !Array.isArray(c.p)) return;
-
-                let p1 = c.p.length > 0 ? db.players.find(pl => pl.id === c.p[0]) : null;
-                let p2 = c.p.length > 1 ? db.players.find(pl => pl.id === c.p[1]) : null;
-                let p3 = c.p.length > 2 ? db.players.find(pl => pl.id === c.p[2]) : null;
-                let p4 = c.p.length > 3 ? db.players.find(pl => pl.id === c.p[3]) : null;
-                
-                let p1Text = p1 ? getPlayerDisplayName(p1) : "";
-                let p2Text = p2 ? getPlayerDisplayName(p2) : "";
-                let p3Text = p3 ? getPlayerDisplayName(p3) : "";
-                let p4Text = p4 ? getPlayerDisplayName(p4) : "";
-
-                let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
-
-                let displayCourtId = parseInt(c.id, 10);
-                if (db.mode === 'split' && currentViewRank === 'B') {
-                    displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
-                }
-
-                // ★V40: コートに1人でも入っていれば試合コートとして強制表示（バグ隠蔽の防止）
-                if (c.p.length > 0) {
-                    courtsHtml += `
-                        <div class="court-card">
-                            <div class="court-header">
-                                <span class="court-title" style="color:var(--text-main);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span>
-                            </div>
-                            <div class="match-row">
-                                <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
-                                    <div class="player-name" style="${getDynamicFontSize(p1Text)}">${p1 ? formatNameHTML(p1) : ""}</div>
-                                    <div class="player-name" style="${getDynamicFontSize(p2Text)}">${p2 ? formatNameHTML(p2) : ""}</div>
-                                </div>
-                                <div class="vs-badge">×</div>
-                                <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
-                                    <div class="player-name" style="${getDynamicFontSize(p3Text)}">${p3 ? formatNameHTML(p3) : ""}</div>
-                                    <div class="player-name" style="${getDynamicFontSize(p4Text)}">${p4 ? formatNameHTML(p4) : ""}</div>
-                                </div>
-                            </div>
-                            <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">⏹ OUT</button>
+                    document.body.classList.add('mode-combined');
+                    matchTitleEl.innerHTML = `
+                        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 12px; font-size:1.4rem; font-weight:900; width:100%; padding:4px 0;">
+                            <span>⏩ 待機順 (合同)</span>
+                            <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
                         </div>`;
                 } else {
-                    courtsHtml += `
-                        <div class="court-card empty-court">
-                            <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span></div>
-                            <div style="flex-grow:1; min-height:80px;"></div>
-                            <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>
+                    let teamStr = currentViewRank === 'A' ? 'Aチーム' : 'Bチーム';
+                    let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
+                    document.body.classList.add(bodyClass);
+                    matchTitleEl.innerHTML = `
+                        <div class="clickable-title" onclick="toggleRankView()">
+                            <span>⏩ 待機順 (${teamStr}) 🔄</span>
+                            <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
                         </div>`;
                 }
-            });
-            document.getElementById('courtsArea').innerHTML = courtsHtml;
+
+                let nextHtml = "";
+                let activeQueue = getActiveQueue();
+                if (activeQueue.length > 0) {
+                    activeQueue.forEach((id, index) => {
+                        let p = db.players.find(pl => pl.id === id);
+                        if (!p) return;
+                        let isTop4 = index < 4;
+                        let isSelected = isAdmin && manualSelectedIds.includes(id);
+                        let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "");
+                        
+                        nextHtml += `
+                            <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
+                                <div class="next-slot-name">${formatNameHTML(p)}</div>
+                                <div style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
+                            </div>`;
+                    });
+                }
+                document.getElementById('nextQueueUI').innerHTML = nextHtml;
+
+                let courtsHtml = "";
+                let activeCourts = getActiveCourts();
+                activeCourts.forEach((c, idx) => {
+                    if (!c || !c.p || !Array.isArray(c.p)) return;
+
+                    let p1 = c.p.length > 0 ? db.players.find(pl => pl.id === c.p[0]) : null;
+                    let p2 = c.p.length > 1 ? db.players.find(pl => pl.id === c.p[1]) : null;
+                    let p3 = c.p.length > 2 ? db.players.find(pl => pl.id === c.p[2]) : null;
+                    let p4 = c.p.length > 3 ? db.players.find(pl => pl.id === c.p[3]) : null;
+                    
+                    let p1Text = p1 ? getPlayerDisplayName(p1) : "";
+                    let p2Text = p2 ? getPlayerDisplayName(p2) : "";
+                    let p3Text = p3 ? getPlayerDisplayName(p3) : "";
+                    let p4Text = p4 ? getPlayerDisplayName(p4) : "";
+
+                    let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
+
+                    let displayCourtId = parseInt(c.id, 10);
+                    if (db.mode === 'split' && currentViewRank === 'B') {
+                        displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
+                    }
+
+                    // ★V41: 強制表示機能（データが欠けていても絶対に描画する）
+                    if (c.p.length > 0) {
+                        courtsHtml += `
+                            <div class="court-card">
+                                <div class="court-header">
+                                    <span class="court-title" style="color:var(--text-main);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span>
+                                </div>
+                                <div class="match-row">
+                                    <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
+                                        <div class="player-name" style="${getDynamicFontSize(p1Text)}">${p1 ? formatNameHTML(p1) : ""}</div>
+                                        <div class="player-name" style="${getDynamicFontSize(p2Text)}">${p2 ? formatNameHTML(p2) : ""}</div>
+                                    </div>
+                                    <div class="vs-badge">×</div>
+                                    <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
+                                        <div class="player-name" style="${getDynamicFontSize(p3Text)}">${p3 ? formatNameHTML(p3) : ""}</div>
+                                        <div class="player-name" style="${getDynamicFontSize(p4Text)}">${p4 ? formatNameHTML(p4) : ""}</div>
+                                    </div>
+                                </div>
+                                <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">⏹ OUT</button>
+                            </div>`;
+                    } else {
+                        courtsHtml += `
+                            <div class="court-card empty-court">
+                                <div class="court-header"><span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span></div>
+                                <div style="flex-grow:1; min-height:80px;"></div>
+                                <button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>
+                            </div>`;
+                    }
+                });
+                document.getElementById('courtsArea').innerHTML = courtsHtml;
+                
+            } catch (err) {
+                console.error("Render Error:", err);
+            }
         }
     </script>
 </body>
