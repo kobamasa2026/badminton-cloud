@@ -12,7 +12,6 @@
     <style>
         :root {
             --primary: #4F46E5; --primary-dark: #4338CA;
-            /* ★V47: 合同とベースは薄い青系で統一 */
             --bg-base: #EFF6FF; 
             --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
@@ -32,10 +31,9 @@
             transition: background-color 0.3s ease;
         }
 
-        /* ★V47: 試合画面の背景色を明確に分離 */
-        body.view-matches-active.mode-combined { background-color: #EFF6FF !important; } /* 合同：薄い青 */
-        body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } /* Aチーム：薄い赤 */
-        body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } /* Bチーム：少し濃い薄青 */
+        body.view-matches-active.mode-combined { background-color: #EFF6FF !important; } 
+        body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } 
+        body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } 
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -75,7 +73,7 @@
             background: var(--bg-surface); display: flex; justify-content: space-around;
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 3px rgba(0,0,0,0.05); z-index: 50;
         }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; cursor: pointer; transition: color 0.2s;}
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 1.4rem; }
 
@@ -165,7 +163,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V47</h1>
+            <h1 class="header-title">V50</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -173,16 +171,13 @@
     </header>
 
     <main>
-        <!-- ==================================== -->
-        <!-- 1. 試合ビュー -->
-        <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
                         <!-- JSで動的にタイトルを描画 -->
                     </div>
-                    <!-- ★V47: 凡例の文字サイズを大型化し、「タップで選択」に統合 -->
+                    <!-- 凡例 -->
                     <div style="font-size:0.95rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:12px; font-weight:bold; margin-top:4px;">
                         <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
                         <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:#F59E0B;"></div>優先<span class="admin-only">（タップで選択）</span></span>
@@ -200,11 +195,8 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
-        <!-- ==================================== -->
-        <!-- 2. 受付ビュー                         -->
-        <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
-            <!-- ① 参加中（全員表示） -->
+            <!-- ① 参加中 -->
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
@@ -213,7 +205,7 @@
                 <div id="presentList"></div>
             </div>
 
-            <!-- ② 名簿 / 受付前（全員表示） -->
+            <!-- ② 名簿 / 受付前 -->
             <div class="card">
                 <div class="section-title">名簿</div>
                 <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（A/Bチームに自動で割り振られます）</p>
@@ -241,9 +233,6 @@
             </div>
         </div>
 
-        <!-- ==================================== -->
-        <!-- 3. 保守ビュー (管理者のみ)             -->
-        <!-- ==================================== -->
         <div id="view-maintenance" class="view admin-only">
             
             <div class="card">
@@ -321,15 +310,15 @@
     </main>
 
     <nav class="bottom-nav">
-        <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
+        <div class="nav-item active" id="nav-matches" onclick="routeTo('matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
-        </a>
-        <a href="javascript:void(0);" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
+        </div>
+        <div class="nav-item admin-only" id="nav-roster" onclick="routeTo('roster')">
             <span class="nav-icon">👥</span><span>受付</span>
-        </a>
-        <a href="javascript:void(0);" class="nav-item admin-only" id="nav-maintenance" onclick="routeTo(event, 'maintenance')">
+        </div>
+        <div class="nav-item admin-only" id="nav-maintenance" onclick="routeTo('maintenance')">
             <span class="nav-icon">🛠</span><span>保守</span>
-        </a>
+        </div>
     </nav>
 
     <!-- モーダル -->
@@ -394,9 +383,6 @@
         const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
-        // ==========================================
-        // データクリーニング関数
-        // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
@@ -436,16 +422,14 @@
             });
         }
         
-        // ★V47: PCでのローカル実行エラー(SecurityError)を回避するためのtry-catch
-        function routeTo(event, viewId) {
-            if(event) event.preventDefault();
+        function routeTo(viewId) {
             if (!isAdmin && viewId !== 'matches') return;
             try {
-                const url = new URL(window.location);
+                const url = new URL(window.location.href);
                 url.searchParams.set('view', viewId);
-                window.history.pushState({ view: viewId }, '', url);
+                window.history.pushState({ view: viewId }, '', url.toString());
             } catch(e) {
-                console.warn('URL update restricted (likely local file context). Proceeding with UI update.');
+                console.warn('URL update restricted.');
             }
             activateView(viewId);
         }
@@ -480,7 +464,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v47_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v50_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -577,9 +561,8 @@
                 payload.maxCourts = null;  
                 
                 dbRef.set(payload).catch(err => {
-                    alert("通信エラーが発生しました。画面を再読み込みしてください。: " + err.message);
+                    alert("通信エラーが発生しました: " + err.message);
                 });
-                
                 render();
             }
         }
@@ -621,8 +604,8 @@
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
             let colorStr = '#111827';
-            if (p.status !== 'inactive' && p.team) colorStr = p.team === 'A' ? '#DC2626' : '#111827';
-            else colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
+            if (p.status !== 'inactive' && p.team) colorStr = p.team === 'A' ? '#9F1239' : '#111827';
+            else colorStr = p.rank === 'A' ? '#9F1239' : '#111827';
             return `<span style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
         }
         
@@ -648,16 +631,9 @@
                 db.queueA = db.queueA.filter(x => String(x) !== String(id));
                 db.queueB = db.queueB.filter(x => String(x) !== String(id));
                 
+                // ★V50: ソートはせず、素直に最後尾に並ぶだけ
                 if (newTeam === 'A') db.queueA.push(id);
                 else db.queueB.push(id);
-                
-                let sortByNum = (id1, id2) => {
-                    let p1 = db.players.find(x => String(x.id) === String(id1));
-                    let p2 = db.players.find(x => String(x.id) === String(id2));
-                    return (p1 ? p1.dailyNum : 999) - (p2 ? p2.dailyNum : 999);
-                };
-                db.queueA.sort(sortByNum);
-                db.queueB.sort(sortByNum);
             }
             saveToCloud();
         }
@@ -707,12 +683,15 @@
                 });
                 db.queueCombined = [];
             } else {
-                db.queueCombined = [...db.queueA, ...db.queueB];
-                db.queueCombined.sort((id1, id2) => {
-                    let p1 = db.players.find(x => String(x.id) === String(id1));
-                    let p2 = db.players.find(x => String(x.id) === String(id2));
-                    return (p1 ? (p1.dailyNum || 999) : 999) - (p2 ? (p2.dailyNum || 999) : 999);
-                });
+                // ★V50: 待機順を破壊しないよう、AとBの列を順番に交互に結合して順番をキープする
+                let mergedQueue = [];
+                let maxLen = Math.max(db.queueA.length, db.queueB.length);
+                for(let i=0; i<maxLen; i++) {
+                    if(i < db.queueA.length) mergedQueue.push(db.queueA[i]);
+                    if(i < db.queueB.length) mergedQueue.push(db.queueB[i]);
+                }
+                db.queueCombined = mergedQueue;
+                
                 db.queueA = []; db.queueB = [];
             }
             manualSelectedIds = [];
@@ -955,8 +934,12 @@
             }
 
             saveStateToHistory();
-            queue.sort(() => Math.random() - 0.5);
+            
+            // ★V50: 先頭から必要な人数だけを取り出す（残った待機列をシャッフルで破壊しない）
             let playersToAssign = queue.splice(0, courtsToFill * 4);
+            
+            // 取り出した人たちの中だけでシャッフルして各コートに割り当てる
+            playersToAssign.sort(() => Math.random() - 0.5);
             
             if (db.mode === 'combined') db.queueCombined = queue;
             else if (currentViewRank === 'A') db.queueA = queue;
@@ -1362,7 +1345,6 @@
                             <span>⏩ 待機順 (合同)</span>
                         </div>`;
                 } else {
-                    // ★V47: タイトルの文字色を変更（上級赤と被らない専用色）
                     let teamStr = currentViewRank === 'A' 
                         ? '<span style="color:#9F1239;">Aチーム</span>' 
                         : '<span style="color:#1E3A8A;">Bチーム</span>';
