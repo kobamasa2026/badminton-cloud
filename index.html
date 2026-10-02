@@ -35,9 +35,17 @@
         body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } 
         body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } 
 
+        /* 一般モード・監督モードの表示切り替え */
         body.viewer-mode .admin-only { display: none !important; }
-        body.admin-mode .admin-badge { display: inline-block; }
-        .admin-badge { background: #DC2626; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-left: 10px; display: none; }
+        body.admin-mode .viewer-only { display: none !important; }
+        
+        body.admin-mode .admin-badge { display: inline-flex; }
+        .admin-badge { 
+            background: #DC2626; color: white; padding: 4px 8px; border-radius: 6px; 
+            font-size: 0.8rem; font-weight: bold; margin-left: 10px; display: none;
+            align-items: center; cursor: pointer; transition: background 0.2s;
+        }
+        .admin-badge:active { background: #991B1B; }
 
         #loadingOverlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-surface);
@@ -169,11 +177,17 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V57</h1>
-            <span class="admin-badge">監督</span>
+            <h1 class="header-title">V58</h1>
+            <!-- ★V58: 監督バッジをクリックでログアウト可能に -->
+            <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
-        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
+        
+        <div style="display:flex; align-items:center; z-index:2; gap:8px;">
+            <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
+            <!-- ★V58: 一般参加者用 隠しログインボタン（鍵アイコン） -->
+            <button id="btnLogin" class="btn-undo viewer-only" style="background:#E5E7EB; width:36px; justify-content:center;" onclick="adminLogin()">🔒</button>
+        </div>
     </header>
 
     <main>
@@ -372,7 +386,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const allowedGroups = { 
             'yyc': 'secret',
-            'nbo': 'himitsu'  // ★V57: nboを追加（パスワードは仮に himitsu）
+            'nbo': 'himitsu' 
         };
         const groupId = urlParams.get('g');
 
@@ -384,12 +398,11 @@
             throw new Error("Invalid Group ID");
         }
         
-        const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
+        // ★V58: URLの「p=secret」は無視し、画面の鍵ボタンからの入力（セッションストレージ）で認証する
+        let isAdmin = sessionStorage.getItem('badmin_auth_' + groupId) === allowedGroups[groupId];
+        
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
-        // ==========================================
-        // データクリーニング関数
-        // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
@@ -461,19 +474,52 @@
                 view = sessionStorage.getItem('badmin_tab_' + groupId) || 'matches';
             } catch(e) {}
             
-            let urlView = urlParams.get('view');
-            if (urlView) view = urlView;
-
             if (!isAdmin) view = 'matches';
             activateView(view);
         }
 
+        // ★V58: 監督ログイン・ログアウト処理
+        function adminLogin() {
+            let pwd = prompt("監督用パスワードを入力してください");
+            if (pwd === allowedGroups[groupId]) {
+                sessionStorage.setItem('badmin_auth_' + groupId, pwd);
+                isAdmin = true;
+                
+                // 画面を監督モードに再構築
+                document.body.classList.add('admin-mode');
+                document.body.classList.remove('viewer-mode');
+                
+                // 元々いたタブを復元するか、試合画面を表示
+                let savedTab = sessionStorage.getItem('badmin_tab_' + groupId) || 'matches';
+                activateView(savedTab);
+                render();
+            } else if (pwd !== null && pwd !== "") {
+                alert("パスワードが違います。");
+            }
+        }
+
+        function adminLogout() {
+            if (confirm("監督モードを終了し、一般閲覧モードに戻りますか？\n（※間違った操作を防ぐためです）")) {
+                sessionStorage.removeItem('badmin_auth_' + groupId);
+                isAdmin = false;
+                
+                document.body.classList.remove('admin-mode');
+                document.body.classList.add('viewer-mode');
+                
+                // 強制的に試合画面に戻す
+                activateView('matches');
+                render();
+            }
+        }
+
         window.onload = function() {
-            if (!isAdmin) {
-                let navRoster = document.querySelector('.nav-item[data-target="roster"]');
-                let navMaintenance = document.querySelector('.nav-item[data-target="maintenance"]');
-                if (navRoster) navRoster.remove();
-                if (navMaintenance) navMaintenance.remove();
+            // CSSで制御するため、DOM自体の削除は行わない
+            if (isAdmin) {
+                document.body.classList.add('admin-mode');
+                document.body.classList.remove('viewer-mode');
+            } else {
+                document.body.classList.remove('admin-mode');
+                document.body.classList.add('viewer-mode');
             }
             
             initRouter();
@@ -496,7 +542,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v57_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v58_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -1262,9 +1308,6 @@
         function render() {
             try {
                 if (isAdmin) {
-                    document.body.classList.toggle('admin-mode', isAdmin);
-                    document.body.classList.toggle('viewer-mode', !isAdmin);
-
                     document.getElementById('settingMode').value = db.mode;
                     if (db.mode === 'combined') {
                         document.getElementById('courtSettingsCombined').style.display = 'flex';
@@ -1406,10 +1449,10 @@
                 activeCourts.forEach((c, idx) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return;
 
-                    let p1 = c.p.length > 0 ? (db.players.find(pl => String(pl.id) === String(c.p[0])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
-                    let p2 = c.p.length > 1 ? (db.players.find(pl => String(pl.id) === String(c.p[1])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
-                    let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
-                    let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
+                    let p1 = c.p.length > 0 ? (db.players.find(pl => String(pl.id) === String(c.p[0])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p2 = c.p.length > 1 ? (db.players.find(pl => String(pl.id) === String(c.p[1])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B"}) : null;
                     
                     let p1Text = p1 ? getPlayerDisplayName(p1) : "";
                     let p2Text = p2 ? getPlayerDisplayName(p2) : "";
