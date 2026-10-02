@@ -162,7 +162,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V42</h1>
+            <h1 class="header-title">V43</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -170,6 +170,9 @@
     </header>
 
     <main>
+        <!-- ==================================== -->
+        <!-- 1. 試合ビュー -->
+        <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
@@ -194,8 +197,13 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
+
+        <!-- ==================================== -->
+        <!-- 2. 受付ビュー                         -->
+        <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
-            <!-- ① 参加中 -->
+            
+            <!-- ① 参加中（全員表示） -->
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
@@ -204,7 +212,7 @@
                 <div id="presentList"></div>
             </div>
 
-            <!-- ② 名簿 / 受付前 -->
+            <!-- ② 名簿 / 受付前（全員表示） -->
             <div class="card">
                 <div class="section-title">名簿</div>
                 <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（Aチーム/Bチームに自動で割り振られます）</p>
@@ -232,7 +240,12 @@
             </div>
         </div>
 
+
+        <!-- ==================================== -->
+        <!-- 3. 保守ビュー (管理者のみ)             -->
+        <!-- ==================================== -->
         <div id="view-maintenance" class="view admin-only">
+            
             <!-- ① 運用モードとコート設定 -->
             <div class="card">
                 <div class="section-title">運用モードとコート数</div>
@@ -385,9 +398,7 @@
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
-        // ★V42 究極のデータバリデーション（完全防弾化）★
-        // Firebaseの「勝手な形式変換」や「過去のゴミデータ」を検知し
-        // どんな状況でも必ず正しいコートの配列オブジェクトに錬成し直す
+        // ★V43 完全防弾データクリーニング関数
         // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
@@ -398,25 +409,18 @@
         const cleanCourts = (courtsData, maxNum) => {
             let arr = [];
             if (courtsData) {
-                // 配列またはオブジェクトを一度配列に変換
                 let temp = Array.isArray(courtsData) ? courtsData : Object.values(courtsData);
-                // ゴミデータ（ただの文字列やnull等）を弾き、必ずオブジェクト化する
                 arr = temp.map(c => {
                     if (typeof c === 'object' && c !== null) return c;
                     return { p: [], selected: false }; 
                 });
             }
-            
-            // 必ずpが配列であることを保証し、IDを振り直す
             arr.forEach((c, i) => {
                 c.id = i + 1;
                 c.p = toNumArray(c.p); 
             });
-            
             let targetMax = parseInt(maxNum, 10) || 0;
-            // 足りない分を追加
             while (arr.length < targetMax) arr.push({ id: arr.length + 1, p: [], selected: false });
-            // はみ出た分をカット
             while (arr.length > targetMax) arr.pop();
             return arr;
         };
@@ -472,7 +476,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v42_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v43_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -501,7 +505,6 @@
                 db.queueA = toNumArray(data.queueA);
                 db.queueB = toNumArray(data.queueB);
 
-                // ★V42: 過去の「courts」データが残っていても安全に処理
                 db.courtsCombined = cleanCourts(data.courtsCombined || data.courts, db.maxCourtsCombined);
                 db.courtsA = cleanCourts(data.courtsA, db.maxCourtsA);
                 db.courtsB = cleanCourts(data.courtsB, db.maxCourtsB);
@@ -513,7 +516,7 @@
                 let activePlayersInCourts = new Set();
                 [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                     arr.forEach(c => {
-                        if(c && c.p) c.p.forEach(pid => activePlayersInCourts.add(pid));
+                        if(c && c.p) c.p.forEach(pid => activePlayersInCourts.add(Number(pid)));
                     });
                 });
                 
@@ -543,11 +546,14 @@
             updateUndoButton();
         };
 
-        // ★V42: 保存時にクラウド上の旧データを確実に上書きして浄化する
+        // ★V43: ディープコピーでメモリ参照のバグを100%遮断
         function saveToCloud() {
             if (isAdmin) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
-                let payload = Object.assign({}, db);
+                // 完全な値渡しによるクリーンなJSONオブジェクトの生成
+                let cleanDB = JSON.parse(JSON.stringify(db));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDB)); 
+                
+                let payload = Object.assign({}, cleanDB);
                 payload.queue = null;      
                 payload.courts = null;     
                 payload.maxCourts = null;  
@@ -608,7 +614,7 @@
 
         function toggleTeam(id) {
             if(!isAdmin) return;
-            let p = db.players.find(x => x.id === id);
+            let p = db.players.find(x => String(x.id) === String(id));
             if(!p) return;
             
             saveStateToHistory();
@@ -616,15 +622,15 @@
             p.team = newTeam;
             
             if (db.mode === 'split' && p.status === 'waiting') {
-                db.queueA = db.queueA.filter(x => x !== id);
-                db.queueB = db.queueB.filter(x => x !== id);
+                db.queueA = db.queueA.filter(x => String(x) !== String(id));
+                db.queueB = db.queueB.filter(x => String(x) !== String(id));
                 
                 if (newTeam === 'A') db.queueA.push(id);
                 else db.queueB.push(id);
                 
                 let sortByNum = (id1, id2) => {
-                    let p1 = db.players.find(x => x.id === id1);
-                    let p2 = db.players.find(x => x.id === id2);
+                    let p1 = db.players.find(x => String(x.id) === String(id1));
+                    let p2 = db.players.find(x => String(x.id) === String(id2));
                     return (p1 ? p1.dailyNum : 999) - (p2 ? p2.dailyNum : 999);
                 };
                 db.queueA.sort(sortByNum);
@@ -669,7 +675,7 @@
             if (newMode === 'split') {
                 db.queueA = []; db.queueB = [];
                 db.queueCombined.forEach(id => {
-                    let p = db.players.find(x => x.id === id);
+                    let p = db.players.find(x => String(x.id) === String(id));
                     if (p) {
                         if (!p.team) p.team = p.rank; 
                         if (p.team === 'A') db.queueA.push(id);
@@ -680,8 +686,8 @@
             } else {
                 db.queueCombined = [...db.queueA, ...db.queueB];
                 db.queueCombined.sort((id1, id2) => {
-                    let p1 = db.players.find(x => x.id === id1);
-                    let p2 = db.players.find(x => x.id === id2);
+                    let p1 = db.players.find(x => String(x.id) === String(id1));
+                    let p2 = db.players.find(x => String(x.id) === String(id2));
                     return (p1 ? (p1.dailyNum || 999) : 999) - (p2 ? (p2.dailyNum || 999) : 999);
                 });
                 db.queueA = []; db.queueB = [];
@@ -767,7 +773,7 @@
 
         function checkIn(id) {
             if (!isAdmin) return;
-            let player = db.players.find(p => p.id === id);
+            let player = db.players.find(p => String(p.id) === String(id));
             if (!player) return;
             saveStateToHistory();
             if (!player.dailyNum) {
@@ -786,7 +792,7 @@
 
         function openPlayerMenu(id) {
             if (!isAdmin) return;
-            let player = db.players.find(p => p.id === id);
+            let player = db.players.find(p => String(p.id) === String(id));
             if (!player) return;
             
             if (player.status === 'playing') {
@@ -794,7 +800,7 @@
                     saveStateToHistory();
                     [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                         arr.forEach(c => {
-                            if (c.p) c.p = c.p.filter(pid => pid !== id);
+                            if (c.p) c.p = c.p.filter(pid => String(pid) !== String(id));
                         });
                     });
                     player.status = 'waiting';
@@ -818,12 +824,12 @@
 
         function execStatusChange(newStatus) {
             if (!isAdmin) return;
-            let player = db.players.find(p => p.id === currentModalPlayerId);
+            let player = db.players.find(p => String(p.id) === String(currentModalPlayerId));
             if (player) {
                 saveStateToHistory();
-                db.queueCombined = db.queueCombined.filter(q => q !== player.id);
-                db.queueA = db.queueA.filter(q => q !== player.id);
-                db.queueB = db.queueB.filter(q => q !== player.id);
+                db.queueCombined = db.queueCombined.filter(q => String(q) !== String(player.id));
+                db.queueA = db.queueA.filter(q => String(q) !== String(player.id));
+                db.queueB = db.queueB.filter(q => String(q) !== String(player.id));
                 
                 player.status = newStatus;
                 
@@ -844,7 +850,7 @@
             let court = courts[idx];
             let leaving = [...(court.p || [])].sort(() => Math.random() - 0.5);
             leaving.forEach(id => {
-                let player = db.players.find(p => p.id === id);
+                let player = db.players.find(p => String(p.id) === String(id));
                 if (player) { 
                     player.status = 'waiting'; 
                     if (db.mode === 'combined') db.queueCombined.push(id);
@@ -859,7 +865,7 @@
         function toggleManualSelect(id) {
             if (!isAdmin) return;
             if (manualSelectedIds.includes(id)) {
-                manualSelectedIds = manualSelectedIds.filter(x => x !== id);
+                manualSelectedIds = manualSelectedIds.filter(x => String(x) !== String(id));
             } else {
                 if (manualSelectedIds.length < 4) manualSelectedIds.push(id);
                 else alert("優先INは最大4名までです。");
@@ -891,11 +897,10 @@
             else if (currentViewRank === 'A') db.queueA = unselectedQueue;
             else db.queueB = unselectedQueue;
             
-            // ★V42: 安全に確実に入れる
             court.p = []; 
 
             finalPlayers.forEach(id => {
-                let p = db.players.find(pl => pl.id === id);
+                let p = db.players.find(pl => String(pl.id) === String(id));
                 if (p) {
                     p.status = 'playing'; p.playCount++; court.p.push(id);
                 }
@@ -933,7 +938,7 @@
                 court.p = []; 
                 let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
-                    let p = db.players.find(pl => pl.id === id);
+                    let p = db.players.find(pl => String(pl.id) === String(id));
                     if (p) {
                         p.status = 'playing'; p.playCount++; court.p.push(id);
                     }
@@ -1049,11 +1054,16 @@
             
             let bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
             let blob = new Blob([bom, csv], { type: "text/csv" });
+            let file = new File([blob], `history_${date}.csv`, { type: "text/csv" });
             
-            let url = URL.createObjectURL(blob);
-            let dlNode = document.createElement('a');
-            dlNode.href = url; dlNode.download = `history_${date}.csv`;
-            document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ title: `参加者履歴_${date}`, files: [file] }).catch(err => console.log(err));
+            } else {
+                let url = URL.createObjectURL(blob);
+                let dlNode = document.createElement('a');
+                dlNode.href = url; dlNode.download = `history_${date}.csv`;
+                document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
+            }
         }
 
         let currentEditMemberId = null;
@@ -1088,7 +1098,7 @@
 
         function editMember(id) {
             if(!isAdmin) return;
-            let p = db.players.find(x => x.id === id);
+            let p = db.players.find(x => String(x.id) === String(id));
             if(!p) return;
             currentEditMemberId = id;
             document.getElementById('editInputName').value = p.name;
@@ -1104,7 +1114,7 @@
 
         function saveEditMember() {
             if(!isAdmin || !currentEditMemberId) return;
-            let p = db.players.find(x => x.id === currentEditMemberId);
+            let p = db.players.find(x => String(x.id) === String(currentEditMemberId));
             if(!p) return;
             
             let newName = document.getElementById('editInputName').value.trim();
@@ -1121,14 +1131,14 @@
         
         function deleteMember(id) {
             if(!isAdmin) return;
-            let p = db.players.find(x => x.id === id);
+            let p = db.players.find(x => String(x.id) === String(id));
             if(!p) return;
             if(p.status !== 'inactive') {
                 return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩」させてください。");
             }
             if(confirm(`「${p.name}」さんを名簿から完全に削除しますか？`)) {
                 saveStateToHistory();
-                db.players = db.players.filter(x => x.id !== id);
+                db.players = db.players.filter(x => String(x.id) !== String(id));
                 saveToCloud();
             }
         }
@@ -1328,7 +1338,7 @@
                 let activeQueue = getActiveQueue();
                 if (activeQueue.length > 0) {
                     activeQueue.forEach((id, index) => {
-                        let p = db.players.find(pl => pl.id === id);
+                        let p = db.players.find(pl => String(pl.id) === String(id));
                         if (!p) return;
                         let isTop4 = index < 4;
                         let isSelected = isAdmin && manualSelectedIds.includes(id);
@@ -1348,10 +1358,10 @@
                 activeCourts.forEach((c, idx) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return;
 
-                    let p1 = c.p.length > 0 ? db.players.find(pl => pl.id === c.p[0]) : null;
-                    let p2 = c.p.length > 1 ? db.players.find(pl => pl.id === c.p[1]) : null;
-                    let p3 = c.p.length > 2 ? db.players.find(pl => pl.id === c.p[2]) : null;
-                    let p4 = c.p.length > 3 ? db.players.find(pl => pl.id === c.p[3]) : null;
+                    let p1 = c.p.length > 0 ? (db.players.find(pl => String(pl.id) === String(c.p[0])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p2 = c.p.length > 1 ? (db.players.find(pl => String(pl.id) === String(c.p[1])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B"}) : null;
                     
                     let p1Text = p1 ? getPlayerDisplayName(p1) : "";
                     let p2Text = p2 ? getPlayerDisplayName(p2) : "";
@@ -1365,6 +1375,7 @@
                         displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                     }
 
+                    // ★V43: 万が一データがおかしい場合でも必ずコートを描画する
                     if (c.p.length > 0) {
                         courtsHtml += `
                             <div class="court-card">
