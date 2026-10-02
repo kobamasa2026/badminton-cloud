@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ボード V36(ipadテスト版)</title>
+    <title>バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -32,8 +32,8 @@
         }
 
         /* 試合画面のみ背景色を変更（目立たせる） */
-        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } /* 上級：赤系 */
-        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* 中級：グレー系 */
+        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } /* Aチーム：赤系 */
+        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* Bチーム：グレー系 */
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -45,15 +45,22 @@
             font-size: 1.2rem; font-weight: bold; color: var(--text-sub); flex-direction: column; gap:10px;
         }
 
+        /* ★V37: ヘッダーのレイアウト変更（中央タイトル追加） */
         header {
             position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); background: var(--bg-surface);
             display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 50;
         }
         .header-title { font-size: 1.2rem; font-weight: 900; color: var(--primary); margin: 0; display:flex; align-items:center;}
+        .header-center {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            font-weight: 900; font-size: 1.1rem; color: var(--text-main);
+        }
+
         .btn-undo {
             background: #F3F4F6; color: var(--text-main); border: none; padding: 8px 12px; border-radius: 20px;
             font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; cursor: pointer;
+            position: relative; z-index: 2;
         }
         .btn-undo:disabled { opacity: 0.4; cursor: not-allowed; }
         
@@ -138,7 +145,6 @@
         .rank-A { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
         .rank-B { background: #F3F4F6; color: #111827; border-color: #D1D5DB; }
 
-        /* タイトルクリック可能UI */
         .clickable-title { cursor: pointer; padding: 8px 24px; border-radius: 12px; transition: background 0.2s; background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.05); }
         .clickable-title:active { background: rgba(0,0,0,0.05); }
     </style>
@@ -150,9 +156,14 @@
         <span id="loadingMsg">クラウドへ接続中...</span>
     </div>
 
+    <!-- ★V37: ヘッダーレイアウト（中央に現在の画面名を表示） -->
     <header>
-        <h1 class="header-title" style="margin:0;">ボード V36 <span class="admin-badge">監督</span></h1>
-        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️</span> 戻る</button>
+        <div style="display:flex; align-items:center; z-index:2;">
+            <h1 class="header-title">V37</h1>
+            <span class="admin-badge">監督</span>
+        </div>
+        <div class="header-center" id="headerViewName">試合</div>
+        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️️</span> 戻る</button>
     </header>
 
     <main>
@@ -161,10 +172,9 @@
         <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
-                <!-- ★V36: ヘッダーレイアウトの改善（中央寄せ、大型化） -->
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
-                        <!-- JSで動的にタイトルを描画（クリックでランク切替） -->
+                        <!-- JSで動的にタイトルを描画（クリックでAチーム/Bチーム切替） -->
                     </div>
                     <!-- 凡例 -->
                     <div style="font-size:0.75rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:8px; font-weight:bold;">
@@ -186,13 +196,14 @@
 
 
         <!-- ==================================== -->
-        <!-- 2. メンバービュー (管理者のみ)         -->
+        <!-- 2. 受付ビュー (元メンバー画面)         -->
         <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
             
             <!-- ① 参加中（全員表示） -->
             <div class="card">
-                <div class="section-title" id="rosterPresentTitle">参加中</div>
+                <!-- ★V37: シンプルなタイトル -->
+                <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
                     <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (休憩不可)</span>
                 </div>
@@ -201,8 +212,8 @@
 
             <!-- ② 名簿 / 受付前（全員表示） -->
             <div class="card">
-                <div class="section-title" id="rosterInactiveTitle">名簿</div>
-                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付</p>
+                <div class="section-title">名簿</div>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（Aチーム/Bチームに自動で割り振られます）</p>
                 <div id="inactiveList"></div>
             </div>
 
@@ -240,7 +251,7 @@
                     <label style="font-size:0.9rem; font-weight:bold; color:var(--text-sub);">運用モード設定</label>
                     <select id="settingMode" class="input-text" style="font-weight:bold;" onchange="changeOperationMode(this.value)">
                         <option value="combined">合同（全体をひとつの列で回す）</option>
-                        <option value="split">ランク別（上級と中級で列とコートを分ける）</option>
+                        <option value="split">チーム別（AチームとBチームで列とコートを分ける）</option>
                     </select>
                 </div>
                 
@@ -256,10 +267,10 @@
                     </div>
                 </div>
 
-                <!-- ランク別コート設定 -->
+                <!-- チーム別コート設定 -->
                 <div id="courtSettingsSplit" style="display:none; flex-direction:column; gap:16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:bold; font-size:1.1rem;">上級コート数</span>
+                        <span style="font-weight:bold; font-size:1.1rem;">Aチーム コート数</span>
                         <div style="display:flex; align-items:center; gap:16px;">
                             <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('A', -1)">ー</button>
                             <span id="settingCourtCountA" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center;">3</span>
@@ -267,7 +278,7 @@
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:bold; font-size:1.1rem;">中級コート数</span>
+                        <span style="font-weight:bold; font-size:1.1rem;">Bチーム コート数</span>
                         <div style="display:flex; align-items:center; gap:16px;">
                             <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('B', -1)">ー</button>
                             <span id="settingCourtCountB" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center;">3</span>
@@ -314,13 +325,13 @@
         </div>
     </main>
 
-    <!-- タブメニュー -->
+    <!-- ★V37: タブ名の変更（メンバー ➔ 受付） -->
     <nav class="bottom-nav">
         <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
         </a>
         <a href="javascript:void(0);" class="nav-item admin-only" id="nav-roster" onclick="routeTo(event, 'roster')">
-            <span class="nav-icon">👥</span><span>メンバー</span>
+            <span class="nav-icon">👥</span><span>受付</span>
         </a>
         <a href="javascript:void(0);" class="nav-item admin-only" id="nav-maintenance" onclick="routeTo(event, 'maintenance')">
             <span class="nav-icon">🛠</span><span>保守</span>
@@ -347,7 +358,7 @@
                     <input type="text" id="editInputName" class="input-text" maxlength="6">
                 </div>
                 <div>
-                    <label style="font-weight:bold; font-size:0.9rem; color:var(--text-sub);">ランク</label>
+                    <label style="font-weight:bold; font-size:0.9rem; color:var(--text-sub);">ランク(基本のクラス)</label>
                     <select id="editInputRank" class="input-text">
                         <option value="A">上級</option>
                         <option value="B">中級</option>
@@ -432,6 +443,14 @@
             if (viewEl) viewEl.classList.add('active');
             if (navEl) navEl.classList.add('active');
             
+            // ★V37: ヘッダー中央のタイトルを動的に変更
+            const headerViewName = document.getElementById('headerViewName');
+            if(headerViewName) {
+                if(viewId === 'matches') headerViewName.innerText = '試合';
+                else if(viewId === 'roster') headerViewName.innerText = '受付';
+                else if(viewId === 'maintenance') headerViewName.innerText = '保守';
+            }
+            
             if (viewId === 'matches') {
                 document.body.classList.add('view-matches-active');
             } else {
@@ -451,21 +470,24 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v36_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v37_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
         
-        // ローカルUI状態（監督が手元で見ているランク）
-        let currentViewRank = 'A'; // 'A' or 'B'
+        // ローカルUI状態（監督が手元で見ているチーム）
+        let currentViewRank = 'A'; // 'A'(Aチーム) or 'B'(Bチーム)
 
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 db.players = data.players || [];
                 db.players.forEach(p => {
+                    // 古いデータの自動補完
                     if (!p.rank) p.rank = 'B';
                     if (p.gender) delete p.gender;
+                    // ★V37: 参加中でteamが未設定ならrankから補完する（移行用）
+                    if (p.status !== 'inactive' && !p.team) p.team = p.rank;
                 });
                 
                 db.mode = data.mode || 'combined';
@@ -573,7 +595,13 @@
 
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            let colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
+            // ★V37: 当日参加中はp.teamで色付け。それ以外は本来のp.rankで色付け。
+            let colorStr = '#111827'; // デフォルト黒
+            if (p.status !== 'inactive' && p.team) {
+                colorStr = p.team === 'A' ? '#DC2626' : '#111827';
+            } else {
+                colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
+            }
             return `<span style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
         }
         
@@ -586,20 +614,22 @@
             return 'font-size: clamp(0.7rem, 2vw, 1.0rem);';
         }
 
-        function toggleRank(id) {
+        // ★V37: 当日の所属チーム（A/B）を変更する機能
+        function toggleTeam(id) {
             if(!isAdmin) return;
             let p = db.players.find(x => x.id === id);
             if(!p) return;
             
             saveStateToHistory();
-            let newRank = p.rank === 'A' ? 'B' : 'A';
-            p.rank = newRank;
+            // 現在のチームを反転
+            let newTeam = p.team === 'A' ? 'B' : 'A';
+            p.team = newTeam;
             
             if (db.mode === 'split' && p.status === 'waiting') {
                 db.queueA = db.queueA.filter(x => x !== id);
                 db.queueB = db.queueB.filter(x => x !== id);
                 
-                if (newRank === 'A') db.queueA.push(id);
+                if (newTeam === 'A') db.queueA.push(id);
                 else db.queueB.push(id);
                 
                 let sortByNum = (id1, id2) => {
@@ -655,7 +685,8 @@
                 db.queueCombined.forEach(id => {
                     let p = db.players.find(x => x.id === id);
                     if (p) {
-                        if (p.rank === 'A') db.queueA.push(id);
+                        if (!p.team) p.team = p.rank; // 念のため補完
+                        if (p.team === 'A') db.queueA.push(id);
                         else db.queueB.push(id);
                     }
                 });
@@ -716,6 +747,7 @@
                         let records = {};
                         db.players.forEach(p => {
                             if (p.dailyNum) { 
+                                // 履歴には本来のランク(rank)を保存する
                                 records[p.id] = { name: p.name, playCount: p.playCount, rank: p.rank, dailyNum: p.dailyNum };
                             }
                         });
@@ -724,7 +756,12 @@
                     
                     saveStateToHistory();
                     db.dailyCounter = 1;
-                    db.players.forEach(p => { p.status = 'inactive'; p.playCount = 0; p.dailyNum = null; });
+                    db.players.forEach(p => { 
+                        p.status = 'inactive'; 
+                        p.playCount = 0; 
+                        p.dailyNum = null; 
+                        delete p.team; // 当日のチーム情報をリセット
+                    });
                     db.queueCombined = []; db.queueA = []; db.queueB = [];
                     [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                         arr.forEach(c => { c.p = []; c.selected = false; });
@@ -763,8 +800,11 @@
             }
             player.status = 'waiting';
             
+            // ★V37: 受付時に本来のランクを当日の「チーム」として初期設定する
+            player.team = player.rank; 
+            
             if (db.mode === 'combined') db.queueCombined.push(id);
-            else if (player.rank === 'A') db.queueA.push(id);
+            else if (player.team === 'A') db.queueA.push(id);
             else db.queueB.push(id);
             
             saveToCloud();
@@ -799,7 +839,7 @@
                 
                 if (newStatus === 'waiting') {
                     if (db.mode === 'combined') db.queueCombined.push(player.id);
-                    else if (player.rank === 'A') db.queueA.push(player.id);
+                    else if (player.team === 'A') db.queueA.push(player.id);
                     else db.queueB.push(player.id);
                 }
             }
@@ -818,7 +858,7 @@
                 if (player) { 
                     player.status = 'waiting'; 
                     if (db.mode === 'combined') db.queueCombined.push(id);
-                    else if (player.rank === 'A') db.queueA.push(id);
+                    else if (player.team === 'A') db.queueA.push(id);
                     else db.queueB.push(id);
                 }
             });
@@ -1034,20 +1074,16 @@
             let sortedMaster = [...db.players].sort((a, b) => a.id - b.id);
             
             sortedMaster.forEach(p => {
-                let statusBadge = p.status !== 'inactive' ? '<span style="color:#10B981; font-size:0.8rem; font-weight:bold;">[IN]</span>' : '';
                 let rnk = p.rank === 'A' ? '上級' : '中級';
                 
-                // ★V36: 保守画面のリスト横位置の固定幅による整列
+                // ★V37: 保守画面から[IN]の表示を完全に削除
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
-                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}</div>
+                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900;">${p.name}</div>
                         <div style="width:40px; text-align:center; flex-shrink:0;">
                             <span class="rank-badge rank-${p.rank}">${rnk}</span>
-                        </div>
-                        <div style="width:36px; text-align:right; flex-shrink:0;">
-                            ${statusBadge}
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-shrink:0;">
@@ -1087,23 +1123,7 @@
             if(newName && (newName !== p.name || newRank !== p.rank)) {
                 saveStateToHistory();
                 p.name = newName;
-                
-                if(newRank !== p.rank) {
-                    p.rank = newRank;
-                    if (db.mode === 'split' && p.status === 'waiting') {
-                        db.queueA = db.queueA.filter(id => id !== p.id);
-                        db.queueB = db.queueB.filter(id => id !== p.id);
-                        if (newRank === 'A') db.queueA.push(p.id);
-                        else db.queueB.push(p.id);
-                        
-                        let targetQ = newRank === 'A' ? db.queueA : db.queueB;
-                        targetQ.sort((id1, id2) => {
-                            let p1 = db.players.find(x => x.id === id1);
-                            let p2 = db.players.find(x => x.id === id2);
-                            return (p1?p1.dailyNum:999) - (p2?p2.dailyNum:999);
-                        });
-                    }
-                }
+                p.rank = newRank;
                 saveToCloud();
             }
             closeEditMemberModal();
@@ -1216,11 +1236,12 @@
                 let presentHtml = "";
                 let presentCount = 0;
 
+                // 参加中は常に全員表示
                 let presentPlayers = db.players.filter(p => p.status !== 'inactive');
                 presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
 
                 presentPlayers.forEach(p => {
-                    let pQueue = db.mode === 'combined' ? db.queueCombined : (p.rank === 'A' ? db.queueA : db.queueB);
+                    let pQueue = db.mode === 'combined' ? db.queueCombined : (p.team === 'A' ? db.queueA : db.queueB);
                     let isNext = (p.status === 'waiting' && pQueue.indexOf(p.id) < 4 && pQueue.indexOf(p.id) !== -1);
                     let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
                     
@@ -1228,12 +1249,11 @@
                         ? '<div class="status-dot dot-playing"></div>' 
                         : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                     
-                    let rnk = p.rank === 'A' ? '上級' : '中級';
-                    
-                    // ★V36: 参加中リストのボタン横位置の固定幅による整列
-                    let rankBtn = isAdmin 
-                        ? `<button class="rank-badge rank-${p.rank}" onclick="event.stopPropagation(); toggleRank(${p.id})" style="cursor:pointer; width:52px;">${rnk} 🔄</button>` 
-                        : `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnk}</span>`;
+                    // ★V37: 当日のチームを表示・切り替え
+                    let tmStr = p.team === 'A' ? 'Aチーム' : 'Bチーム';
+                    let teamBtn = isAdmin 
+                        ? `<button class="rank-badge rank-${p.team}" onclick="event.stopPropagation(); toggleTeam(${p.id})" style="cursor:pointer; width:68px;">${tmStr} 🔄</button>` 
+                        : `<span class="rank-badge rank-${p.team}" style="display:inline-block; width:56px; text-align:center;">${tmStr}</span>`;
                     
                     presentHtml += `
                         <div class="list-row" onclick="openPlayerMenu(${p.id})">
@@ -1241,7 +1261,7 @@
                                 ${dotHtml}
                                 <div class="member-name" style="flex:1; display:flex; align-items:center; min-width:0;">
                                     <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${formatNameHTML(p)}</div>
-                                    <div style="margin-left:8px; flex-shrink:0;">${rankBtn}</div>
+                                    <div style="margin-left:8px; flex-shrink:0;">${teamBtn}</div>
                                 </div>
                             </div>
                             <div class="member-meta" style="flex-shrink:0; margin-left:12px; width:80px; text-align:right;">
@@ -1251,12 +1271,11 @@
                     presentCount++;
                 });
 
+                // 受付前は全員表示（マスタのランクを表示）
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
                     let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
-                    let rnk = p.rank === 'A' ? '上級' : '中級';
-                    
-                    // ★V36: 名簿リストはランク表示のみ（ボタン化しない）
-                    let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnk}</span>`;
+                    let rnkStr = p.rank === 'A' ? '上級' : '中級';
+                    let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnkStr}</span>`;
 
                     inactiveHtml += `
                         <div class="list-row" onclick="checkIn(${p.id})">
@@ -1300,15 +1319,15 @@
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
 
-            // ★V36: ヘッダータイトルの大型化・中央化
             if (db.mode === 'combined') {
                 document.body.classList.add('mode-combined');
                 matchTitleEl.innerHTML = `<div style="font-size:1.4rem; font-weight:900; padding:4px 0;">⏩ 待機順 (合同) <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
             } else {
-                let rankStr = currentViewRank === 'A' ? '上級' : '中級';
+                // ★V37: タイトルをAチーム/Bチームに
+                let teamStr = currentViewRank === 'A' ? 'Aチーム' : 'Bチーム';
                 let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
                 document.body.classList.add(bodyClass);
-                matchTitleEl.innerHTML = `<div class="clickable-title" onclick="toggleRankView()" style="display:flex; align-items:center; justify-content:center; gap:12px; font-size:1.4rem; font-weight:900; width:100%;">⏩ 待機順 (${rankStr}) 🔄 <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
+                matchTitleEl.innerHTML = `<div class="clickable-title" onclick="toggleRankView()" style="display:flex; align-items:center; justify-content:center; gap:12px; font-size:1.4rem; font-weight:900; width:100%;">⏩ 待機順 (${teamStr}) 🔄 <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
             }
 
             let nextHtml = "";
