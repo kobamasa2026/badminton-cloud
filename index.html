@@ -162,7 +162,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V41</h1>
+            <h1 class="header-title">V42</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -385,27 +385,38 @@
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
-        // ★V41 強力なデータクリーニング関数群★
-        // （Firebaseの型崩れ・幽霊データを完全に無効化する）
+        // ★V42 究極のデータバリデーション（完全防弾化）★
+        // Firebaseの「勝手な形式変換」や「過去のゴミデータ」を検知し
+        // どんな状況でも必ず正しいコートの配列オブジェクトに錬成し直す
         // ==========================================
         const toNumArray = (arr) => {
-            if (!arr) return [];
+            if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
-            return temp.filter(x => x !== null && x !== undefined && x !== "").map(Number);
+            return temp.filter(x => x !== null && x !== undefined && x !== "").map(Number).filter(x => !isNaN(x));
         };
 
         const cleanCourts = (courtsData, maxNum) => {
             let arr = [];
             if (courtsData) {
-                arr = Array.isArray(courtsData) ? courtsData : Object.values(courtsData);
-                arr = arr.filter(c => c != null);
+                // 配列またはオブジェクトを一度配列に変換
+                let temp = Array.isArray(courtsData) ? courtsData : Object.values(courtsData);
+                // ゴミデータ（ただの文字列やnull等）を弾き、必ずオブジェクト化する
+                arr = temp.map(c => {
+                    if (typeof c === 'object' && c !== null) return c;
+                    return { p: [], selected: false }; 
+                });
             }
+            
+            // 必ずpが配列であることを保証し、IDを振り直す
             arr.forEach((c, i) => {
                 c.id = i + 1;
-                c.p = toNumArray(c.p); // 確実にNumberの配列にする
+                c.p = toNumArray(c.p); 
             });
+            
             let targetMax = parseInt(maxNum, 10) || 0;
+            // 足りない分を追加
             while (arr.length < targetMax) arr.push({ id: arr.length + 1, p: [], selected: false });
+            // はみ出た分をカット
             while (arr.length > targetMax) arr.pop();
             return arr;
         };
@@ -461,7 +472,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v41_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v42_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -471,7 +482,6 @@
             try {
                 const data = snapshot.val() || {};
                 
-                // 1. Playersの厳格なクリーニング
                 let rawPlayers = data.players || [];
                 let pArr = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers);
                 db.players = pArr.filter(p => p != null).map(p => {
@@ -482,18 +492,16 @@
                     return p;
                 });
 
-                // 2. Settings
                 db.mode = data.mode || 'combined';
                 db.maxCourtsCombined = parseInt(data.maxCourtsCombined || data.maxCourts || 6, 10);
                 db.maxCourtsA = parseInt(data.maxCourtsA || 3, 10);
                 db.maxCourtsB = parseInt(data.maxCourtsB || 3, 10);
 
-                // 3. Queueのクリーニング（過去の遺物 data.queue を参照しつつ、完全に数字配列化）
                 db.queueCombined = toNumArray(data.queueCombined !== undefined ? data.queueCombined : data.queue);
                 db.queueA = toNumArray(data.queueA);
                 db.queueB = toNumArray(data.queueB);
 
-                // 4. Courtsのクリーニング（データが壊れていても必ず再生する）
+                // ★V42: 過去の「courts」データが残っていても安全に処理
                 db.courtsCombined = cleanCourts(data.courtsCombined || data.courts, db.maxCourtsCombined);
                 db.courtsA = cleanCourts(data.courtsA, db.maxCourtsA);
                 db.courtsB = cleanCourts(data.courtsB, db.maxCourtsB);
@@ -501,11 +509,11 @@
                 db.dailyCounter = data.dailyCounter || 1;
                 db.history = data.history || {};
 
-                // 5. 幽霊バグ（Limbo）の完全防止機能
+                // 幽霊バグ防止機能
                 let activePlayersInCourts = new Set();
                 [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                     arr.forEach(c => {
-                        c.p.forEach(pid => activePlayersInCourts.add(pid));
+                        if(c && c.p) c.p.forEach(pid => activePlayersInCourts.add(pid));
                     });
                 });
                 
@@ -535,14 +543,14 @@
             updateUndoButton();
         };
 
-        // ★V41: 古い亡霊データをクラウドから完全消去しながら保存する
+        // ★V42: 保存時にクラウド上の旧データを確実に上書きして浄化する
         function saveToCloud() {
             if (isAdmin) {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); 
                 let payload = Object.assign({}, db);
-                payload.queue = null;      // 旧データ消去
-                payload.courts = null;     // 旧データ消去
-                payload.maxCourts = null;  // 旧データ消去
+                payload.queue = null;      
+                payload.courts = null;     
+                payload.maxCourts = null;  
                 dbRef.set(payload);
             }
         }
@@ -782,7 +790,7 @@
             if (!player) return;
             
             if (player.status === 'playing') {
-                if (confirm("このメンバーは試合中になっています。強制的に「待機」に戻しますか？\n（※システム修復用の救済措置です）")) {
+                if (confirm("このメンバーは試合中になっています。強制的に「待機」に戻しますか？\n（※システムエラー時の救済措置です）")) {
                     saveStateToHistory();
                     [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                         arr.forEach(c => {
@@ -883,6 +891,7 @@
             else if (currentViewRank === 'A') db.queueA = unselectedQueue;
             else db.queueB = unselectedQueue;
             
+            // ★V42: 安全に確実に入れる
             court.p = []; 
 
             finalPlayers.forEach(id => {
@@ -1356,7 +1365,6 @@
                         displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                     }
 
-                    // ★V41: 強制表示機能（データが欠けていても絶対に描画する）
                     if (c.p.length > 0) {
                         courtsHtml += `
                             <div class="court-card">
