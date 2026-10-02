@@ -162,7 +162,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V43</h1>
+            <h1 class="header-title">V44</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -398,7 +398,7 @@
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
-        // ★V43 完全防弾データクリーニング関数
+        // ★V44 究極のデータバリデーション
         // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
@@ -476,7 +476,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v43_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v44_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -512,14 +512,29 @@
                 db.dailyCounter = data.dailyCounter || 1;
                 db.history = data.history || {};
 
-                // 幽霊バグ防止機能
+                // ★V44: 過去のテストデータが裏のコートに残っていたら強制的に消去（浄化）する
+                if (db.mode === 'combined') {
+                    db.courtsA.forEach(c => c.p = []);
+                    db.courtsB.forEach(c => c.p = []);
+                } else {
+                    db.courtsCombined.forEach(c => c.p = []);
+                }
+
+                // ★V44: 幽霊バグ防止機能（現在のモードの表にあるコートだけを見て生存確認をする）
                 let activePlayersInCourts = new Set();
-                [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
-                    arr.forEach(c => {
+                if (db.mode === 'combined') {
+                    db.courtsCombined.forEach(c => {
                         if(c && c.p) c.p.forEach(pid => activePlayersInCourts.add(Number(pid)));
                     });
-                });
+                } else {
+                    [db.courtsA, db.courtsB].forEach(arr => {
+                        arr.forEach(c => {
+                            if(c && c.p) c.p.forEach(pid => activePlayersInCourts.add(Number(pid)));
+                        });
+                    });
+                }
                 
+                // 表のコートにいないのに「試合中」のステータスになっている人を待機列に救出
                 db.players.forEach(p => {
                     if (p.status === 'playing' && !activePlayersInCourts.has(p.id)) {
                         p.status = 'waiting';
@@ -546,10 +561,8 @@
             updateUndoButton();
         };
 
-        // ★V43: ディープコピーでメモリ参照のバグを100%遮断
         function saveToCloud() {
             if (isAdmin) {
-                // 完全な値渡しによるクリーンなJSONオブジェクトの生成
                 let cleanDB = JSON.parse(JSON.stringify(db));
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDB)); 
                 
@@ -923,7 +936,10 @@
             
             let queue = getActiveQueue();
             let courtsToFill = Math.min(emptyCourts.length, Math.floor(queue.length / 4));
-            if (courtsToFill === 0) return alert("人数が足りません。");
+            if (courtsToFill === 0) {
+                if (queue.length > 0 && queue.length < 4) return alert("人数が足りません（4人必要です）。");
+                else return alert("空きコートがないか、人数が足りません。");
+            }
 
             saveStateToHistory();
             queue.sort(() => Math.random() - 0.5);
@@ -1375,7 +1391,6 @@
                         displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                     }
 
-                    // ★V43: 万が一データがおかしい場合でも必ずコートを描画する
                     if (c.p.length > 0) {
                         courtsHtml += `
                             <div class="court-card">
