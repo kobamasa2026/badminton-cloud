@@ -35,7 +35,6 @@
         body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } 
         body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } 
 
-        /* 一般モード・監督モードの表示切り替え */
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .viewer-only { display: none !important; }
         
@@ -177,15 +176,13 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V58</h1>
-            <!-- ★V58: 監督バッジをクリックでログアウト可能に -->
+            <h1 class="header-title">V59</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
         
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
             <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
-            <!-- ★V58: 一般参加者用 隠しログインボタン（鍵アイコン） -->
             <button id="btnLogin" class="btn-undo viewer-only" style="background:#E5E7EB; width:36px; justify-content:center;" onclick="adminLogin()">🔒</button>
         </div>
     </header>
@@ -398,7 +395,6 @@
             throw new Error("Invalid Group ID");
         }
         
-        // ★V58: URLの「p=secret」は無視し、画面の鍵ボタンからの入力（セッションストレージ）で認証する
         let isAdmin = sessionStorage.getItem('badmin_auth_' + groupId) === allowedGroups[groupId];
         
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
@@ -478,23 +474,24 @@
             activateView(view);
         }
 
-        // ★V58: 監督ログイン・ログアウト処理
+        // ★V59: ログイン時の空白（スペース）除去処理を追加
         function adminLogin() {
             let pwd = prompt("監督用パスワードを入力してください");
-            if (pwd === allowedGroups[groupId]) {
-                sessionStorage.setItem('badmin_auth_' + groupId, pwd);
-                isAdmin = true;
-                
-                // 画面を監督モードに再構築
-                document.body.classList.add('admin-mode');
-                document.body.classList.remove('viewer-mode');
-                
-                // 元々いたタブを復元するか、試合画面を表示
-                let savedTab = sessionStorage.getItem('badmin_tab_' + groupId) || 'matches';
-                activateView(savedTab);
-                render();
-            } else if (pwd !== null && pwd !== "") {
-                alert("パスワードが違います。");
+            if (pwd !== null) {
+                let cleanPwd = pwd.trim(); // スマホ特有の自動スペースを削除
+                if (cleanPwd === allowedGroups[groupId]) {
+                    sessionStorage.setItem('badmin_auth_' + groupId, cleanPwd);
+                    isAdmin = true;
+                    
+                    document.body.classList.add('admin-mode');
+                    document.body.classList.remove('viewer-mode');
+                    
+                    let savedTab = sessionStorage.getItem('badmin_tab_' + groupId) || 'matches';
+                    activateView(savedTab);
+                    render();
+                } else if (cleanPwd !== "") {
+                    alert("パスワードが違います。\n(入力した文字に間違いがないかご確認ください)");
+                }
             }
         }
 
@@ -506,14 +503,12 @@
                 document.body.classList.remove('admin-mode');
                 document.body.classList.add('viewer-mode');
                 
-                // 強制的に試合画面に戻す
                 activateView('matches');
                 render();
             }
         }
 
         window.onload = function() {
-            // CSSで制御するため、DOM自体の削除は行わない
             if (isAdmin) {
                 document.body.classList.add('admin-mode');
                 document.body.classList.remove('viewer-mode');
@@ -542,7 +537,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v58_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v59_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
