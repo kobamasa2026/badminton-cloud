@@ -74,7 +74,6 @@
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 3px rgba(0,0,0,0.05); z-index: 50;
         }
         
-        /* ★V55: ナビゲーションアイテムを横並び（row）に変更 */
         .nav-item { 
             flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: center; 
             color: var(--text-sub); text-decoration: none; font-size: 0.9rem; font-weight: bold; gap: 6px; 
@@ -170,7 +169,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V55</h1>
+            <h1 class="header-title">V56</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -491,7 +490,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v55_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v56_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -747,7 +746,6 @@
                         let records = {};
                         db.players.forEach(p => {
                             if (p.dailyNum) { 
-                                // ★V55: マスタのrankと当日のteamを両方保存する
                                 records[p.id] = { name: p.name, playCount: p.playCount, rank: p.rank, team: p.team || p.rank, dailyNum: p.dailyNum };
                             }
                         });
@@ -1038,7 +1036,6 @@
             let html = '';
             arr.forEach(r => {
                 let rnk = r.rank === 'A' ? '上級' : '中級';
-                // ★V55: マスタのランクと、その日の最終チームを画面に両方表示する
                 let tm = r.team ? (r.team === 'A' ? 'A' : 'B') : (r.rank === 'A' ? 'A' : 'B');
                 
                 html += `
@@ -1046,8 +1043,8 @@
                     <div class="member-name">
                         <span style="color:var(--primary); font-size:0.9em; margin-right:4px;">${r.dailyNum}</span>
                         ${r.name} 
-                        <span class="rank-badge rank-${r.rank}" style="margin-left:8px;">${rnk}</span>
-                        <span class="rank-badge rank-${r.team || r.rank}" style="margin-left:4px;">${tm}チーム</span>
+                        <span class="rank-badge rank-${r.rank}" style="margin-left:8px; white-space:nowrap;">${rnk}</span>
+                        <span class="rank-badge rank-${r.team || r.rank}" style="margin-left:4px; white-space:nowrap;">${tm}チーム</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px;">
                         <button class="btn-secondary" style="padding:4px 16px; font-size:1.4rem;" onclick="updateHistoryPlayCount('${date}', '${r.id}', -1)">-</button>
@@ -1075,7 +1072,6 @@
             }
         }
 
-        // ★V55: CSV出力に「最終チーム」の項目を追加
         function exportHistoryCSV() {
             if (!isAdmin) return;
             let date = document.getElementById('historyDateSelect').value;
@@ -1120,13 +1116,14 @@
                 let rnk = p.rank === 'A' ? '上級' : '中級';
                 let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
+                // ★V56: 幅を広く(56px)確保し、絶対に改行させない(white-space:nowrap)よう修正
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
                         <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
-                        <div style="width:40px; text-align:center; flex-shrink:0;">
-                            <span class="rank-badge rank-${p.rank}">${rnk}</span>
+                        <div style="width:56px; text-align:center; flex-shrink:0;">
+                            <span class="rank-badge rank-${p.rank}" style="white-space:nowrap;">${rnk}</span>
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-shrink:0;">
@@ -1315,7 +1312,8 @@
                     db.players.filter(p => p.status === 'inactive').forEach(p => {
                         let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
                         let rnkStr = p.rank === 'A' ? '上級' : '中級';
-                        let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; width:40px; text-align:center;">${rnkStr}</span>`;
+                        // ★V56: 幅を広く(48px以上確保)して改行を防ぐ
+                        let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; min-width:48px; text-align:center; white-space:nowrap;">${rnkStr}</span>`;
 
                         inactiveHtml += `
                             <div class="list-row" onclick="checkIn(${p.id})">
