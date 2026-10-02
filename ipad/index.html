@@ -73,7 +73,6 @@
             background: var(--bg-surface); display: flex; justify-content: space-around;
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -1px 3px rgba(0,0,0,0.05); z-index: 50;
         }
-        /* ★V53: PCでもスマホでも確実に押せる「ネイティブボタン」のスタイルに書き換え */
         .nav-item { 
             flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
             color: var(--text-sub); text-decoration: none; font-size: 0.75rem; font-weight: bold; gap: 4px; 
@@ -169,10 +168,10 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V53</h1>
+            <h1 class="header-title">V54</h1>
             <span class="admin-badge">監督</span>
         </div>
-        <div class="header-center" id="headerViewName">試合</div>
+        <div class="header-center" id="headerViewName">🏸 試合</div>
         <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
     </header>
 
@@ -310,15 +309,14 @@
         </div>
     </main>
 
-    <!-- ★V53: ブラウザのセキュリティブロックを100%回避する「純粋なボタン式」に変更 -->
     <nav class="bottom-nav">
-        <button class="nav-item active" id="nav-matches" onclick="activateView('matches')">
+        <button class="nav-item active" data-target="matches">
             <span class="nav-icon">🏸</span><span>試合</span>
         </button>
-        <button class="nav-item admin-only" id="nav-roster" onclick="activateView('roster')">
+        <button class="nav-item admin-only" data-target="roster">
             <span class="nav-icon">👥</span><span>受付</span>
         </button>
-        <button class="nav-item admin-only" id="nav-maintenance" onclick="activateView('maintenance')">
+        <button class="nav-item admin-only" data-target="maintenance">
             <span class="nav-icon">🛠</span><span>保守</span>
         </button>
     </nav>
@@ -415,20 +413,17 @@
             return arr;
         };
 
-        // ★V53: URL操作によるエラーを100%防止するため、純粋に画面の表示/非表示だけを切り替える
         function activateView(viewId) {
             if (!isAdmin && viewId !== 'matches') viewId = 'matches';
             
-            // 画面を一度すべて隠す
             document.querySelectorAll('.view').forEach(el => {
                 el.classList.remove('active');
                 el.style.display = 'none';
             });
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             
-            // 選ばれた画面だけを表示する
             const viewEl = document.getElementById(`view-${viewId}`);
-            const navEl = document.getElementById(`nav-${viewId}`);
+            const navEl = document.querySelector(`.nav-item[data-target="${viewId}"]`);
             
             if (viewEl) {
                 viewEl.classList.add('active');
@@ -438,9 +433,10 @@
             
             const headerViewName = document.getElementById('headerViewName');
             if(headerViewName) {
-                if(viewId === 'matches') headerViewName.innerText = '試合';
-                else if(viewId === 'roster') headerViewName.innerText = '受付';
-                else if(viewId === 'maintenance') headerViewName.innerText = '保守';
+                // ★V54: アイコン付きのタイトルに変更
+                if(viewId === 'matches') headerViewName.innerHTML = '🏸 試合';
+                else if(viewId === 'roster') headerViewName.innerHTML = '👥 受付';
+                else if(viewId === 'maintenance') headerViewName.innerHTML = '🛠 保守';
             }
             
             if (viewId === 'matches') {
@@ -449,7 +445,6 @@
                 document.body.classList.remove('view-matches-active');
             }
             
-            // リロードした時にも同じ画面が開くように記憶しておく
             try {
                 sessionStorage.setItem('badmin_tab_' + groupId, viewId);
             } catch(e) {}
@@ -463,13 +458,34 @@
                 view = sessionStorage.getItem('badmin_tab_' + groupId) || 'matches';
             } catch(e) {}
             
-            // URLに明示的に ?view=roster などがあればそちらを優先
             let urlView = urlParams.get('view');
             if (urlView) view = urlView;
 
             if (!isAdmin) view = 'matches';
             activateView(view);
         }
+
+        // ★V54: 一般参加者モードの時は、不要なメニューボタンをDOMから完全に消去して押せなくする
+        window.onload = function() {
+            if (!isAdmin) {
+                let navRoster = document.querySelector('.nav-item[data-target="roster"]');
+                let navMaintenance = document.querySelector('.nav-item[data-target="maintenance"]');
+                if (navRoster) navRoster.remove();
+                if (navMaintenance) navMaintenance.remove();
+            }
+            
+            initRouter();
+            
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    let targetView = this.getAttribute('data-target');
+                    if (targetView) activateView(targetView);
+                });
+            });
+
+            updateUndoButton();
+        };
 
         let db = { 
             mode: 'combined', 
@@ -478,7 +494,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v53_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v54_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -559,11 +575,6 @@
             }
         });
 
-        window.onload = function() {
-            initRouter();
-            updateUndoButton();
-        };
-
         function saveToCloud() {
             if (isAdmin) {
                 let cleanDB = JSON.parse(JSON.stringify(db));
@@ -615,10 +626,10 @@
 
         function getPlayerDisplayName(p) { return p.dailyNum ? `${p.dailyNum}${p.name}` : p.name; }
 
-        // ★V53: 名簿のランク（上級=A）であれば、どのチームにいようと確実に赤文字にするよう修正
+        // ★V54: 元々のランク（p.rank）が 'A' なら常にえんじ色（#9F1239）にする
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            let colorStr = p.rank === 'A' ? '#DC2626' : '#111827';
+            let colorStr = p.rank === 'A' ? '#9F1239' : '#111827';
             return `<span style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
         }
         
@@ -1103,13 +1114,16 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
+                // ★V54: マスタ照会画面でも上級者の名前を赤色にする
+                let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
+                
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
-                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900;">${p.name}</div>
-                        <div style="width:40px; text-align:center; flex-shrink:0;">
-                            <span class="rank-badge rank-${p.rank}">${rnk}</span>
+                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
+                        <div style="width:52px; text-align:center; flex-shrink:0;">
+                            <span class="rank-badge rank-${p.rank}" style="white-space:nowrap; display:inline-block;">${rnk}</span>
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-shrink:0;">
