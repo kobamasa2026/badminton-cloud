@@ -162,7 +162,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V45</h1>
+            <h1 class="header-title">V46</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -385,7 +385,7 @@
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
-        // ★V45 究極のデータ・ディープクローン化（参照切れバグ防止）
+        // データクリーニング関数
         // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
@@ -398,7 +398,6 @@
             if (courtsData) {
                 let temp = Array.isArray(courtsData) ? courtsData : Object.values(courtsData);
                 arr = temp.map(c => {
-                    // ★毎回新しいオブジェクトを生成して古いメモリ参照を完全に断ち切る
                     if (typeof c === 'object' && c !== null) {
                         return { id: c.id || 0, p: [...(c.p || [])], selected: !!c.selected };
                     }
@@ -466,7 +465,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v45_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v46_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -478,7 +477,6 @@
                 
                 let rawPlayers = data.players || [];
                 let pArr = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers);
-                // ★ディープクローンで古い参照を排除
                 db.players = pArr.filter(p => p != null).map(p => {
                     return {
                         id: Number(p.id),
@@ -507,7 +505,6 @@
                 db.dailyCounter = data.dailyCounter || 1;
                 db.history = data.history || {};
 
-                // 裏側のコートの完全消去
                 if (db.mode === 'combined') {
                     db.courtsA.forEach(c => c.p = []);
                     db.courtsB.forEach(c => c.p = []);
@@ -515,7 +512,6 @@
                     db.courtsCombined.forEach(c => c.p = []);
                 }
 
-                // 幽霊バグ防止機能
                 let activePlayersInCourts = new Set();
                 if (db.mode === 'combined') {
                     db.courtsCombined.forEach(c => {
@@ -555,7 +551,6 @@
             updateUndoButton();
         };
 
-        // ★V45: 保存時に必ず通信の成否を監視し、即座に画面を強制レンダリングする
         function saveToCloud() {
             if (isAdmin) {
                 let cleanDB = JSON.parse(JSON.stringify(db));
@@ -570,7 +565,6 @@
                     alert("通信エラーが発生しました。画面を再読み込みしてください。: " + err.message);
                 });
                 
-                // 通信を待たずに強制的に手元の画面を更新（モヤモヤ防止）
                 render();
             }
         }
@@ -887,12 +881,10 @@
             render(); 
         }
 
-        // ★V45: filter等の参照を排除し、直接インデックスで配列を書き換える完全防弾設計
         function fillCourt(idx) {
             if (!isAdmin) return;
             
             let courts = getActiveCourts();
-            let court = courts[idx];
             let needed = 4;
             
             let selectedPlayersToEnter = manualSelectedIds.slice(0, needed);
@@ -926,7 +918,6 @@
             saveToCloud();
         }
 
-        // ★V45: filter等の参照を排除し、直接インデックスで配列を書き換える完全防弾設計
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
             if (manualSelectedIds.length > 0) {
@@ -1243,7 +1234,7 @@
         }
 
         // ==========================================
-        // 6. UIの描画（エラー回避構造つき）
+        // 6. UIの描画
         // ==========================================
         function render() {
             try {
@@ -1323,8 +1314,11 @@
                     document.getElementById('inactiveList').innerHTML = inactiveHtml;
                     document.getElementById('presentList').innerHTML = presentHtml;
                     
-                    document.getElementById('rosterPresentTitle').innerHTML = `参加中 (<span style="color:var(--primary);">${presentCount}</span>)`;
-                    document.getElementById('rosterInactiveTitle').innerHTML = `名簿`;
+                    // ★V46: IDが存在しないエラーの修正
+                    let activeCountEl = document.getElementById('activeCount');
+                    if (activeCountEl) {
+                        activeCountEl.innerText = presentCount;
+                    }
                     
                     renderHistoryOptions();
                     renderMaintenanceRoster();
@@ -1438,7 +1432,6 @@
                 document.getElementById('courtsArea').innerHTML = courtsHtml;
                 
             } catch (err) {
-                // ★V45: 万が一画面の構築中にエラーが起きても画面を真っ白にせずエラー内容を表示する
                 console.error("Render Error:", err);
                 document.getElementById('courtsArea').innerHTML = `<div style="padding:20px; background:#FEE2E2; color:#DC2626; font-weight:bold; border-radius:12px;">描画エラーが発生しました: ${err.message}<br>画面を再読み込みしてください。</div>`;
             }
