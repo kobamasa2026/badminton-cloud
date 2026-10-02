@@ -176,7 +176,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V59</h1>
+            <h1 class="header-title">V60</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -470,15 +470,22 @@
                 view = sessionStorage.getItem('badmin_tab_' + groupId) || 'matches';
             } catch(e) {}
             
+            let urlView = urlParams.get('view');
+            if (urlView) view = urlView;
+
             if (!isAdmin) view = 'matches';
             activateView(view);
         }
 
-        // ★V59: ログイン時の空白（スペース）除去処理を追加
+        // ★V60: どんな入力（大文字・全角）をされても自動補正して正解にする超・強力なログイン処理
         function adminLogin() {
             let pwd = prompt("監督用パスワードを入力してください");
             if (pwd !== null) {
-                let cleanPwd = pwd.trim(); // スマホ特有の自動スペースを削除
+                // 前後の空白を消し、小文字にし、全角英数字を半角に自動変換する
+                let cleanPwd = pwd.trim().toLowerCase().replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+                    return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+                });
+                
                 if (cleanPwd === allowedGroups[groupId]) {
                     sessionStorage.setItem('badmin_auth_' + groupId, cleanPwd);
                     isAdmin = true;
@@ -490,7 +497,8 @@
                     activateView(savedTab);
                     render();
                 } else if (cleanPwd !== "") {
-                    alert("パスワードが違います。\n(入力した文字に間違いがないかご確認ください)");
+                    // 何と入力して間違えたのかダイアログに表示してあげる
+                    alert(`パスワードが違います。\n(入力された文字: ${pwd})`);
                 }
             }
         }
@@ -537,7 +545,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v59_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v60_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
