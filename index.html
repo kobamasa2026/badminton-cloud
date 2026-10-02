@@ -12,7 +12,8 @@
     <style>
         :root {
             --primary: #4F46E5; --primary-dark: #4338CA;
-            --bg-base: #F3F4F6;
+            /* ★V47: 合同とベースは薄い青系で統一 */
+            --bg-base: #EFF6FF; 
             --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
             --status-waiting: #9CA3AF; 
@@ -31,8 +32,10 @@
             transition: background-color 0.3s ease;
         }
 
-        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } 
-        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } 
+        /* ★V47: 試合画面の背景色を明確に分離 */
+        body.view-matches-active.mode-combined { background-color: #EFF6FF !important; } /* 合同：薄い青 */
+        body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } /* Aチーム：薄い赤 */
+        body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } /* Bチーム：少し濃い薄青 */
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -162,7 +165,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V46</h1>
+            <h1 class="header-title">V47</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -170,16 +173,19 @@
     </header>
 
     <main>
+        <!-- ==================================== -->
+        <!-- 1. 試合ビュー -->
+        <!-- ==================================== -->
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
                         <!-- JSで動的にタイトルを描画 -->
                     </div>
-                    <!-- 凡例 -->
-                    <div style="font-size:0.75rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:8px; font-weight:bold;">
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
-                        <span style="display:flex; align-items:center; gap:3px;"><div style="width:10px;height:10px;border-radius:50%;background:#F59E0B;"></div>優先</span>
+                    <!-- ★V47: 凡例の文字サイズを大型化し、「タップで選択」に統合 -->
+                    <div style="font-size:0.95rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:12px; font-weight:bold; margin-top:4px;">
+                        <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
+                        <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:#F59E0B;"></div>優先<span class="admin-only">（タップで選択）</span></span>
                     </div>
                 </div>
                 
@@ -194,8 +200,11 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
+        <!-- ==================================== -->
+        <!-- 2. 受付ビュー                         -->
+        <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
-            <!-- ① 参加中 -->
+            <!-- ① 参加中（全員表示） -->
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
@@ -204,10 +213,10 @@
                 <div id="presentList"></div>
             </div>
 
-            <!-- ② 名簿 / 受付前 -->
+            <!-- ② 名簿 / 受付前（全員表示） -->
             <div class="card">
                 <div class="section-title">名簿</div>
-                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（Aチーム/Bチームに自動で割り振られます）</p>
+                <p style="font-size:0.9rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">タップで受付（A/Bチームに自動で割り振られます）</p>
                 <div id="inactiveList"></div>
             </div>
 
@@ -232,8 +241,11 @@
             </div>
         </div>
 
+        <!-- ==================================== -->
+        <!-- 3. 保守ビュー (管理者のみ)             -->
+        <!-- ==================================== -->
         <div id="view-maintenance" class="view admin-only">
-            <!-- ① 運用モードとコート設定 -->
+            
             <div class="card">
                 <div class="section-title">運用モードとコート数</div>
                 <div style="margin-bottom:16px;">
@@ -275,7 +287,6 @@
                 </div>
             </div>
 
-            <!-- ② 名簿マスタの照会 -->
             <div class="card">
                 <div class="section-title">名簿マスタの照会</div>
                 <p style="font-size:0.85rem; color:var(--text-sub); margin-top:-8px; font-weight:bold;">
@@ -289,7 +300,6 @@
                 <div id="maintenanceRosterArea"></div>
             </div>
 
-            <!-- ③ データ管理 -->
             <div class="card" style="border: 2px solid var(--border);">
                 <div class="section-title">データ管理</div>
                 
@@ -426,12 +436,17 @@
             });
         }
         
+        // ★V47: PCでのローカル実行エラー(SecurityError)を回避するためのtry-catch
         function routeTo(event, viewId) {
             if(event) event.preventDefault();
             if (!isAdmin && viewId !== 'matches') return;
-            const url = new URL(window.location);
-            url.searchParams.set('view', viewId);
-            window.history.pushState({ view: viewId }, '', url);
+            try {
+                const url = new URL(window.location);
+                url.searchParams.set('view', viewId);
+                window.history.pushState({ view: viewId }, '', url);
+            } catch(e) {
+                console.warn('URL update restricted (likely local file context). Proceeding with UI update.');
+            }
             activateView(viewId);
         }
         
@@ -465,7 +480,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v46_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v47_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -1314,7 +1329,6 @@
                     document.getElementById('inactiveList').innerHTML = inactiveHtml;
                     document.getElementById('presentList').innerHTML = presentHtml;
                     
-                    // ★V46: IDが存在しないエラーの修正
                     let activeCountEl = document.getElementById('activeCount');
                     if (activeCountEl) {
                         activeCountEl.innerText = presentCount;
@@ -1344,18 +1358,19 @@
                 if (db.mode === 'combined') {
                     document.body.classList.add('mode-combined');
                     matchTitleEl.innerHTML = `
-                        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 12px; font-size:1.4rem; font-weight:900; width:100%; padding:4px 0;">
+                        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 12px; font-size:1.4rem; font-weight:900; width:100%; padding:4px 0; color:#1E3A8A;">
                             <span>⏩ 待機順 (合同)</span>
-                            <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
                         </div>`;
                 } else {
-                    let teamStr = currentViewRank === 'A' ? 'Aチーム' : 'Bチーム';
+                    // ★V47: タイトルの文字色を変更（上級赤と被らない専用色）
+                    let teamStr = currentViewRank === 'A' 
+                        ? '<span style="color:#9F1239;">Aチーム</span>' 
+                        : '<span style="color:#1E3A8A;">Bチーム</span>';
                     let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
                     document.body.classList.add(bodyClass);
                     matchTitleEl.innerHTML = `
                         <div class="clickable-title" onclick="toggleRankView()">
                             <span>⏩ 待機順 (${teamStr}) 🔄</span>
-                            <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
                         </div>`;
                 }
 
