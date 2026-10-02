@@ -12,10 +12,10 @@
     <style>
         :root {
             --primary: #4F46E5; --primary-dark: #4338CA;
-            --bg-base: #F3F4F6; /* 共通の標準背景色 */
+            --bg-base: #F3F4F6;
             --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
-            --status-waiting: #9CA3AF; /* 待機はグレー */
+            --status-waiting: #9CA3AF; 
             --status-next: #8B5CF6; 
             --status-playing: #10B981; --status-inactive: #9CA3AF;
             --nav-height: 65px; --header-height: 56px;
@@ -31,9 +31,8 @@
             transition: background-color 0.3s ease;
         }
 
-        /* 試合画面のみ背景色を変更（目立たせる） */
-        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } /* Aチーム：赤系 */
-        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* Bチーム：グレー系 */
+        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } 
+        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } 
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -144,7 +143,6 @@
         .rank-A { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
         .rank-B { background: #F3F4F6; color: #111827; border-color: #D1D5DB; }
 
-        /* タイトルクリック可能UI（スマホでも重ならないように調整） */
         .clickable-title { 
             cursor: pointer; padding: 8px 16px; border-radius: 12px; 
             transition: background 0.2s; background: rgba(255,255,255,0.6); 
@@ -164,7 +162,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V39</h1>
+            <h1 class="header-title">V40</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -179,7 +177,7 @@
             <div class="card" style="padding-bottom: 12px;">
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
-                        <!-- JSで動的にタイトルを描画（クリックでAチーム/Bチーム切替） -->
+                        <!-- JSで動的にタイトルを描画 -->
                     </div>
                     <!-- 凡例 -->
                     <div style="font-size:0.75rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:8px; font-weight:bold;">
@@ -347,7 +345,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
             <p style="font-size:1rem; color:var(--text-sub); margin-bottom:24px; font-weight:bold;">待機から外し、休憩へ移動します。</p>
-            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩</button>
+            <button class="btn-primary" style="background:#EF4444; margin-bottom:12px; font-size:1.1rem;" onclick="execStatusChange('inactive')">☕ 休憩にする</button>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeModal()">キャンセル</button>
         </div>
     </div>
@@ -415,8 +413,7 @@
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
-        // ★V39 強力なデータクリーニング関数群★
-        // （Firebaseの「勝手にオブジェクト化」を防ぐ安全装置）
+        // ★V40 強力なデータクリーニング関数群★
         // ==========================================
         function cleanQueue(qData) {
             if (Array.isArray(qData)) return qData.filter(id => id !== null && id !== undefined);
@@ -432,9 +429,19 @@
                 arr = Object.values(courtsData).filter(c => c !== null && c !== undefined);
             }
             
-            // 中身の保証とIDの振り直し（必ず1からの連番にする）
+            // ★V40: どんな形にデータが崩れていても必ず正常な配列に戻す
             arr.forEach((c, i) => {
-                if (!c.p) c.p = [];
+                if (!c.p) {
+                    c.p = [];
+                } else if (!Array.isArray(c.p)) {
+                    if (typeof c.p === 'object' && c.p !== null) {
+                        c.p = Object.values(c.p);
+                    } else {
+                        c.p = [];
+                    }
+                }
+                // nullやundefinedを排除
+                c.p = c.p.filter(pid => pid !== null && pid !== undefined);
                 c.id = i + 1; 
             });
 
@@ -508,7 +515,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v39_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v40_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -518,7 +525,6 @@
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                // プレイヤーデータの安全な読み込み
                 let rawPlayers = data.players;
                 let playersArr = [];
                 if (Array.isArray(rawPlayers)) {
@@ -539,7 +545,6 @@
                 db.maxCourtsA = parseInt(data.maxCourtsA || 3, 10);
                 db.maxCourtsB = parseInt(data.maxCourtsB || 3, 10);
                 
-                // ★V39 安全なキューとコートの読み込み
                 db.queueCombined = cleanQueue(data.queueCombined || data.queue);
                 db.queueA = cleanQueue(data.queueA);
                 db.queueB = cleanQueue(data.queueB);
@@ -550,6 +555,25 @@
                 
                 db.dailyCounter = data.dailyCounter || 1;
                 db.history = data.history || {};
+
+                // ★V40 幽霊バグ（Limbo）の自動救済処理
+                let activePlayersInCourts = new Set();
+                [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
+                    arr.forEach(c => {
+                        if (c.p && Array.isArray(c.p)) {
+                            c.p.forEach(pid => activePlayersInCourts.add(pid));
+                        }
+                    });
+                });
+                
+                db.players.forEach(p => {
+                    // コートにいないのに「試合中」になっている人を待機列に救出
+                    if (p.status === 'playing' && !activePlayersInCourts.has(p.id)) {
+                        p.status = 'waiting';
+                        let targetQ = db.mode === 'combined' ? db.queueCombined : (p.team === 'A' ? db.queueA : db.queueB);
+                        if (!targetQ.includes(p.id)) targetQ.push(p.id);
+                    }
+                });
                 
                 if (isInitialLoad) {
                     document.getElementById('loadingOverlay').style.display = 'none';
@@ -561,7 +585,6 @@
                 render();
             } else {
                 if (isAdmin) {
-                    // 初期状態の作成
                     db.courtsCombined = cleanCourts([], db.maxCourtsCombined);
                     db.courtsA = cleanCourts([], db.maxCourtsA);
                     db.courtsB = cleanCourts([], db.maxCourtsB);
@@ -762,7 +785,7 @@
             if (n >= 1 && n <= 12) {
                 saveStateToHistory();
                 db[valKey] = n;
-                db[arrKey] = cleanCourts(db[arrKey], n); // 安全に配列を伸縮
+                db[arrKey] = cleanCourts(db[arrKey], n);
                 saveToCloud();
             }
         }
@@ -846,7 +869,25 @@
             if (!isAdmin) return;
             let player = db.players.find(p => p.id === id);
             if (!player) return;
-            if (player.status === 'playing') return alert("試合中です。先にOUTしてください。");
+            
+            // ★V40 手動救出ボタン（幽霊状態の解除用）
+            if (player.status === 'playing') {
+                if (confirm("このメンバーは試合中になっています。強制的に「待機」に戻しますか？\n（※画面がおかしくなった場合の救済措置です）")) {
+                    saveStateToHistory();
+                    // 全コートから強制削除
+                    [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
+                        arr.forEach(c => {
+                            if (c.p) c.p = c.p.filter(pid => pid !== id);
+                        });
+                    });
+                    player.status = 'waiting';
+                    let targetQ = db.mode === 'combined' ? db.queueCombined : (player.team === 'A' ? db.queueA : db.queueB);
+                    if (!targetQ.includes(id)) targetQ.push(id);
+                    saveToCloud();
+                }
+                return;
+            }
+            
             currentModalPlayerId = id;
             document.getElementById('modalPlayerName').innerHTML = formatNameHTML(player);
             document.getElementById('statusModal').style.display = 'flex';
@@ -992,14 +1033,24 @@
         function reshuffleSelectedCourts() {
             if (!isAdmin) return;
             let courts = getActiveCourts();
-            let selected = courts.filter(c => c.selected && c.p && c.p.length === 4);
+            
+            // ★V40: 1人以上いればシャッフル可能にする（データ欠損対策）
+            let selected = courts.filter(c => c.selected && c.p && c.p.length > 0);
             if (selected.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
 
             saveStateToHistory();
             let targetPlayers = [];
             selected.forEach(c => { targetPlayers.push(...c.p); c.p = []; c.selected = false; });
             targetPlayers.sort(() => Math.random() - 0.5);
-            selected.forEach((c, i) => { c.p = targetPlayers.slice(i * 4, i * 4 + 4); });
+            
+            let splitIndex = 0;
+            selected.forEach((c) => { 
+                // そのコートに元々いた人数分だけ戻す（4人未満のバグコート対応）
+                let cap = Math.min(4, targetPlayers.length - splitIndex);
+                if (cap < 4 && targetPlayers.length > 4) cap = 4; // 基本は4人を詰める
+                c.p = targetPlayers.slice(splitIndex, splitIndex + cap);
+                splitIndex += cap;
+            });
             saveToCloud();
         }
 
@@ -1390,13 +1441,13 @@
             let courtsHtml = "";
             let activeCourts = getActiveCourts();
             activeCourts.forEach((c, idx) => {
-                // 万が一のための安全策（undefinedエラー防止）
-                if (!c || !c.p) return;
+                // ★V40: どんなにデータが壊れていても必ず配列として安全に処理
+                if (!c || !c.p || !Array.isArray(c.p)) return;
 
-                let p1 = db.players.find(pl => pl.id === c.p[0]);
-                let p2 = db.players.find(pl => pl.id === c.p[1]);
-                let p3 = db.players.find(pl => pl.id === c.p[2]);
-                let p4 = db.players.find(pl => pl.id === c.p[3]);
+                let p1 = c.p.length > 0 ? db.players.find(pl => pl.id === c.p[0]) : null;
+                let p2 = c.p.length > 1 ? db.players.find(pl => pl.id === c.p[1]) : null;
+                let p3 = c.p.length > 2 ? db.players.find(pl => pl.id === c.p[2]) : null;
+                let p4 = c.p.length > 3 ? db.players.find(pl => pl.id === c.p[3]) : null;
                 
                 let p1Text = p1 ? getPlayerDisplayName(p1) : "";
                 let p2Text = p2 ? getPlayerDisplayName(p2) : "";
@@ -1410,7 +1461,8 @@
                     displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                 }
 
-                if (c.p && c.p.length === 4) {
+                // ★V40: コートに1人でも入っていれば試合コートとして強制表示（バグ隠蔽の防止）
+                if (c.p.length > 0) {
                     courtsHtml += `
                         <div class="court-card">
                             <div class="court-header">
