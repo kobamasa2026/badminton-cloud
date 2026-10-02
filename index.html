@@ -12,10 +12,10 @@
     <style>
         :root {
             --primary: #4F46E5; --primary-dark: #4338CA;
-            --bg-base: #F3F4F6; /* 共通の標準背景色 */
+            --bg-base: #F3F4F6; 
             --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
-            --status-waiting: #9CA3AF; /* 待機はグレー */
+            --status-waiting: #9CA3AF; 
             --status-next: #8B5CF6; 
             --status-playing: #10B981; --status-inactive: #9CA3AF;
             --nav-height: 65px; --header-height: 56px;
@@ -31,9 +31,8 @@
             transition: background-color 0.3s ease;
         }
 
-        /* 試合画面のみ背景色を変更（目立たせる） */
-        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } /* Aチーム：赤系 */
-        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* Bチーム：グレー系 */
+        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } 
+        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } 
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -45,7 +44,6 @@
             font-size: 1.2rem; font-weight: bold; color: var(--text-sub); flex-direction: column; gap:10px;
         }
 
-        /* ★V37: ヘッダーのレイアウト変更（中央タイトル追加） */
         header {
             position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); background: var(--bg-surface);
             display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
@@ -145,7 +143,14 @@
         .rank-A { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
         .rank-B { background: #F3F4F6; color: #111827; border-color: #D1D5DB; }
 
-        .clickable-title { cursor: pointer; padding: 8px 24px; border-radius: 12px; transition: background 0.2s; background: rgba(255,255,255,0.6); border: 2px solid rgba(0,0,0,0.05); }
+        /* タイトルクリック可能UI（スマホでも重ならないように調整） */
+        .clickable-title { 
+            cursor: pointer; padding: 8px 16px; border-radius: 12px; 
+            transition: background 0.2s; background: rgba(255,255,255,0.6); 
+            border: 2px solid rgba(0,0,0,0.05);
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: center; 
+            gap: 4px 12px; font-size: 1.3rem; font-weight: 900; width: 100%; 
+        }
         .clickable-title:active { background: rgba(0,0,0,0.05); }
     </style>
 </head>
@@ -156,14 +161,13 @@
         <span id="loadingMsg">クラウドへ接続中...</span>
     </div>
 
-    <!-- ★V37: ヘッダーレイアウト（中央に現在の画面名を表示） -->
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V37</h1>
+            <h1 class="header-title">V38</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
-        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩️️</span> 戻る</button>
+        <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
     </header>
 
     <main>
@@ -196,13 +200,12 @@
 
 
         <!-- ==================================== -->
-        <!-- 2. 受付ビュー (元メンバー画面)         -->
+        <!-- 2. 受付ビュー                         -->
         <!-- ==================================== -->
         <div id="view-roster" class="view admin-only">
             
             <!-- ① 参加中（全員表示） -->
             <div class="card">
-                <!-- ★V37: シンプルなタイトル -->
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
                 <div style="font-size:0.85rem; color:var(--text-main); margin-bottom:12px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; font-weight:bold;">
                     <span style="display:flex; align-items:center; gap:4px;"><div style="width:12px;height:12px;border-radius:50%;background:var(--status-playing);"></div>試合中 (休憩不可)</span>
@@ -325,7 +328,7 @@
         </div>
     </main>
 
-    <!-- ★V37: タブ名の変更（メンバー ➔ 受付） -->
+    <!-- タブメニュー -->
     <nav class="bottom-nav">
         <a href="javascript:void(0);" class="nav-item active" id="nav-matches" onclick="routeTo(event, 'matches')">
             <span class="nav-icon">🏸</span><span>試合</span>
@@ -443,7 +446,6 @@
             if (viewEl) viewEl.classList.add('active');
             if (navEl) navEl.classList.add('active');
             
-            // ★V37: ヘッダー中央のタイトルを動的に変更
             const headerViewName = document.getElementById('headerViewName');
             if(headerViewName) {
                 if(viewId === 'matches') headerViewName.innerText = '試合';
@@ -464,36 +466,34 @@
         // 4. データ構造とUI状態
         // ==========================================
         let db = { 
-            mode: 'combined', // 'combined' | 'split'
+            mode: 'combined', 
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
             courtsCombined: [], courtsA: [], courtsB: [],
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v37_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v38_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
         
-        // ローカルUI状態（監督が手元で見ているチーム）
-        let currentViewRank = 'A'; // 'A'(Aチーム) or 'B'(Bチーム)
+        let currentViewRank = 'A'; 
 
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 db.players = data.players || [];
                 db.players.forEach(p => {
-                    // 古いデータの自動補完
                     if (!p.rank) p.rank = 'B';
                     if (p.gender) delete p.gender;
-                    // ★V37: 参加中でteamが未設定ならrankから補完する（移行用）
                     if (p.status !== 'inactive' && !p.team) p.team = p.rank;
                 });
                 
                 db.mode = data.mode || 'combined';
-                db.maxCourtsCombined = data.maxCourtsCombined || data.maxCourts || 6;
-                db.maxCourtsA = data.maxCourtsA || 3;
-                db.maxCourtsB = data.maxCourtsB || 3;
+                // ★V38: Stringによるバグを確実に防ぐためすべて数値として取り込む
+                db.maxCourtsCombined = parseInt(data.maxCourtsCombined || data.maxCourts || 6, 10);
+                db.maxCourtsA = parseInt(data.maxCourtsA || 3, 10);
+                db.maxCourtsB = parseInt(data.maxCourtsB || 3, 10);
                 
                 db.queueCombined = data.queueCombined || data.queue || [];
                 db.queueA = data.queueA || [];
@@ -503,7 +503,7 @@
                 db.courtsA = data.courtsA || [];
                 db.courtsB = data.courtsB || [];
                 
-                adjustAllCourts(); // 確実なコート生成保証
+                adjustAllCourts();
                 
                 [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
                     arr.forEach(c => { if (!c.p) c.p = []; });
@@ -595,8 +595,7 @@
 
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            // ★V37: 当日参加中はp.teamで色付け。それ以外は本来のp.rankで色付け。
-            let colorStr = '#111827'; // デフォルト黒
+            let colorStr = '#111827';
             if (p.status !== 'inactive' && p.team) {
                 colorStr = p.team === 'A' ? '#DC2626' : '#111827';
             } else {
@@ -614,14 +613,12 @@
             return 'font-size: clamp(0.7rem, 2vw, 1.0rem);';
         }
 
-        // ★V37: 当日の所属チーム（A/B）を変更する機能
         function toggleTeam(id) {
             if(!isAdmin) return;
             let p = db.players.find(x => x.id === id);
             if(!p) return;
             
             saveStateToHistory();
-            // 現在のチームを反転
             let newTeam = p.team === 'A' ? 'B' : 'A';
             p.team = newTeam;
             
@@ -685,7 +682,7 @@
                 db.queueCombined.forEach(id => {
                     let p = db.players.find(x => x.id === id);
                     if (p) {
-                        if (!p.team) p.team = p.rank; // 念のため補完
+                        if (!p.team) p.team = p.rank; 
                         if (p.team === 'A') db.queueA.push(id);
                         else db.queueB.push(id);
                     }
@@ -712,7 +709,9 @@
             let valKey = targetKey === 'combined' ? 'maxCourtsCombined' : (targetKey === 'A' ? 'maxCourtsA' : 'maxCourtsB');
             let arrKey = targetKey === 'combined' ? 'courtsCombined' : (targetKey === 'A' ? 'courtsA' : 'courtsB');
             
-            let n = db[valKey] + delta;
+            let currentVal = parseInt(db[valKey], 10) || 0;
+            let n = currentVal + delta;
+            
             if (delta < 0) {
                 let lastCourt = db[arrKey][db[arrKey].length - 1];
                 if (lastCourt && lastCourt.p && lastCourt.p.length > 0) return; 
@@ -731,8 +730,13 @@
             adjustCourtArray('courtsB', 'maxCourtsB');
         }
         function adjustCourtArray(arrKey, maxKey) {
-            while (db[arrKey].length < db[maxKey]) db[arrKey].push({ id: db[arrKey].length + 1, p: [], selected: false });
-            while (db[arrKey].length > db[maxKey]) db[arrKey].pop();
+            let maxNum = parseInt(db[maxKey], 10) || 0;
+            while (db[arrKey].length < maxNum) {
+                db[arrKey].push({ id: db[arrKey].length + 1, p: [], selected: false });
+            }
+            while (db[arrKey].length > maxNum) {
+                db[arrKey].pop();
+            }
         }
 
         function startNewDay() {
@@ -747,7 +751,6 @@
                         let records = {};
                         db.players.forEach(p => {
                             if (p.dailyNum) { 
-                                // 履歴には本来のランク(rank)を保存する
                                 records[p.id] = { name: p.name, playCount: p.playCount, rank: p.rank, dailyNum: p.dailyNum };
                             }
                         });
@@ -760,7 +763,7 @@
                         p.status = 'inactive'; 
                         p.playCount = 0; 
                         p.dailyNum = null; 
-                        delete p.team; // 当日のチーム情報をリセット
+                        delete p.team; 
                     });
                     db.queueCombined = []; db.queueA = []; db.queueB = [];
                     [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
@@ -800,7 +803,6 @@
             }
             player.status = 'waiting';
             
-            // ★V37: 受付時に本来のランクを当日の「チーム」として初期設定する
             player.team = player.rank; 
             
             if (db.mode === 'combined') db.queueCombined.push(id);
@@ -901,6 +903,9 @@
             else if (currentViewRank === 'A') db.queueA = unselectedQueue;
             else db.queueB = unselectedQueue;
             
+            // ★V38: 万が一の幽霊バグ防止のため必ず空にする
+            court.p = []; 
+
             finalPlayers.forEach(id => {
                 let p = db.players.find(pl => pl.id === id);
                 if (p) {
@@ -937,6 +942,8 @@
             
             for (let i = 0; i < courtsToFill; i++) {
                 let court = emptyCourts[i];
+                // ★V38: 万が一の幽霊バグ防止のため必ず空にする
+                court.p = []; 
                 let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
                     let p = db.players.find(pl => pl.id === id);
@@ -1076,7 +1083,6 @@
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
                 
-                // ★V37: 保守画面から[IN]の表示を完全に削除
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
@@ -1236,7 +1242,6 @@
                 let presentHtml = "";
                 let presentCount = 0;
 
-                // 参加中は常に全員表示
                 let presentPlayers = db.players.filter(p => p.status !== 'inactive');
                 presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
 
@@ -1249,7 +1254,6 @@
                         ? '<div class="status-dot dot-playing"></div>' 
                         : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                     
-                    // ★V37: 当日のチームを表示・切り替え
                     let tmStr = p.team === 'A' ? 'Aチーム' : 'Bチーム';
                     let teamBtn = isAdmin 
                         ? `<button class="rank-badge rank-${p.team}" onclick="event.stopPropagation(); toggleTeam(${p.id})" style="cursor:pointer; width:68px;">${tmStr} 🔄</button>` 
@@ -1271,7 +1275,6 @@
                     presentCount++;
                 });
 
-                // 受付前は全員表示（マスタのランクを表示）
                 db.players.filter(p => p.status === 'inactive').forEach(p => {
                     let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
                     let rnkStr = p.rank === 'A' ? '上級' : '中級';
@@ -1319,15 +1322,23 @@
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
 
+            // ★V38: タイトル文字のレイアウト調整（スマホで重ならないように修正）
             if (db.mode === 'combined') {
                 document.body.classList.add('mode-combined');
-                matchTitleEl.innerHTML = `<div style="font-size:1.4rem; font-weight:900; padding:4px 0;">⏩ 待機順 (合同) <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
+                matchTitleEl.innerHTML = `
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 12px; font-size:1.4rem; font-weight:900; width:100%; padding:4px 0;">
+                        <span>⏩ 待機順 (合同)</span>
+                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
+                    </div>`;
             } else {
-                // ★V37: タイトルをAチーム/Bチームに
                 let teamStr = currentViewRank === 'A' ? 'Aチーム' : 'Bチーム';
                 let bodyClass = currentViewRank === 'A' ? 'mode-split-A' : 'mode-split-B';
                 document.body.classList.add(bodyClass);
-                matchTitleEl.innerHTML = `<div class="clickable-title" onclick="toggleRankView()" style="display:flex; align-items:center; justify-content:center; gap:12px; font-size:1.4rem; font-weight:900; width:100%;">⏩ 待機順 (${teamStr}) 🔄 <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub);">※タップで優先</span></div>`;
+                matchTitleEl.innerHTML = `
+                    <div class="clickable-title" onclick="toggleRankView()">
+                        <span>⏩ 待機順 (${teamStr}) 🔄</span>
+                        <span class="admin-only" style="font-size: 0.85rem; font-weight:normal; color:var(--text-sub); white-space:nowrap;">※タップで優先</span>
+                    </div>`;
             }
 
             let nextHtml = "";
@@ -1364,9 +1375,10 @@
 
                 let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
-                let displayCourtId = c.id;
+                // ★V38: 文字列として結合されるバグを防ぐため、必ず数値(parseInt)として足し算を行う
+                let displayCourtId = parseInt(c.id, 10);
                 if (db.mode === 'split' && currentViewRank === 'B') {
-                    displayCourtId = db.maxCourtsA + c.id;
+                    displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                 }
 
                 if (c.p && c.p.length === 4) {
