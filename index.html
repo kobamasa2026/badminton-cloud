@@ -12,10 +12,10 @@
     <style>
         :root {
             --primary: #4F46E5; --primary-dark: #4338CA;
-            --bg-base: #F3F4F6; 
+            --bg-base: #F3F4F6; /* 共通の標準背景色 */
             --bg-surface: #FFFFFF;
             --text-main: #111827; --text-sub: #6B7280; --border: #D1D5DB;
-            --status-waiting: #9CA3AF; 
+            --status-waiting: #9CA3AF; /* 待機はグレー */
             --status-next: #8B5CF6; 
             --status-playing: #10B981; --status-inactive: #9CA3AF;
             --nav-height: 65px; --header-height: 56px;
@@ -31,8 +31,9 @@
             transition: background-color 0.3s ease;
         }
 
-        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } 
-        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } 
+        /* 試合画面のみ背景色を変更（目立たせる） */
+        body.view-matches-active.mode-split-A { background-color: #FECACA !important; } /* Aチーム：赤系 */
+        body.view-matches-active.mode-split-B { background-color: #D1D5DB !important; } /* Bチーム：グレー系 */
 
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .admin-badge { display: inline-block; }
@@ -163,7 +164,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V38</h1>
+            <h1 class="header-title">V39</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">試合</div>
@@ -414,6 +415,41 @@
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
         // ==========================================
+        // ★V39 強力なデータクリーニング関数群★
+        // （Firebaseの「勝手にオブジェクト化」を防ぐ安全装置）
+        // ==========================================
+        function cleanQueue(qData) {
+            if (Array.isArray(qData)) return qData.filter(id => id !== null && id !== undefined);
+            if (typeof qData === 'object' && qData !== null) return Object.values(qData).filter(id => id !== null && id !== undefined);
+            return [];
+        }
+
+        function cleanCourts(courtsData, maxNum) {
+            let arr = [];
+            if (Array.isArray(courtsData)) {
+                arr = courtsData.filter(c => c !== null && c !== undefined);
+            } else if (typeof courtsData === 'object' && courtsData !== null) {
+                arr = Object.values(courtsData).filter(c => c !== null && c !== undefined);
+            }
+            
+            // 中身の保証とIDの振り直し（必ず1からの連番にする）
+            arr.forEach((c, i) => {
+                if (!c.p) c.p = [];
+                c.id = i + 1; 
+            });
+
+            // 設定数に合わせる
+            let targetMax = parseInt(maxNum, 10) || 0;
+            while (arr.length < targetMax) {
+                arr.push({ id: arr.length + 1, p: [], selected: false });
+            }
+            while (arr.length > targetMax) {
+                arr.pop();
+            }
+            return arr;
+        }
+
+        // ==========================================
         // 3. ルーティング
         // ==========================================
         function initRouter() {
@@ -472,7 +508,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v38_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v39_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -482,7 +518,16 @@
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                db.players = data.players || [];
+                // プレイヤーデータの安全な読み込み
+                let rawPlayers = data.players;
+                let playersArr = [];
+                if (Array.isArray(rawPlayers)) {
+                    playersArr = rawPlayers.filter(p => p !== null && p !== undefined);
+                } else if (typeof rawPlayers === 'object' && rawPlayers !== null) {
+                    playersArr = Object.values(rawPlayers).filter(p => p !== null && p !== undefined);
+                }
+                db.players = playersArr;
+
                 db.players.forEach(p => {
                     if (!p.rank) p.rank = 'B';
                     if (p.gender) delete p.gender;
@@ -490,24 +535,18 @@
                 });
                 
                 db.mode = data.mode || 'combined';
-                // ★V38: Stringによるバグを確実に防ぐためすべて数値として取り込む
                 db.maxCourtsCombined = parseInt(data.maxCourtsCombined || data.maxCourts || 6, 10);
                 db.maxCourtsA = parseInt(data.maxCourtsA || 3, 10);
                 db.maxCourtsB = parseInt(data.maxCourtsB || 3, 10);
                 
-                db.queueCombined = data.queueCombined || data.queue || [];
-                db.queueA = data.queueA || [];
-                db.queueB = data.queueB || [];
+                // ★V39 安全なキューとコートの読み込み
+                db.queueCombined = cleanQueue(data.queueCombined || data.queue);
+                db.queueA = cleanQueue(data.queueA);
+                db.queueB = cleanQueue(data.queueB);
                 
-                db.courtsCombined = data.courtsCombined || data.courts || [];
-                db.courtsA = data.courtsA || [];
-                db.courtsB = data.courtsB || [];
-                
-                adjustAllCourts();
-                
-                [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
-                    arr.forEach(c => { if (!c.p) c.p = []; });
-                });
+                db.courtsCombined = cleanCourts(data.courtsCombined || data.courts, db.maxCourtsCombined);
+                db.courtsA = cleanCourts(data.courtsA, db.maxCourtsA);
+                db.courtsB = cleanCourts(data.courtsB, db.maxCourtsB);
                 
                 db.dailyCounter = data.dailyCounter || 1;
                 db.history = data.history || {};
@@ -522,7 +561,10 @@
                 render();
             } else {
                 if (isAdmin) {
-                    adjustAllCourts();
+                    // 初期状態の作成
+                    db.courtsCombined = cleanCourts([], db.maxCourtsCombined);
+                    db.courtsA = cleanCourts([], db.maxCourtsA);
+                    db.courtsB = cleanCourts([], db.maxCourtsB);
                     saveToCloud();
                     document.getElementById('loadingOverlay').style.display = 'none';
                     isInitialLoad = false;
@@ -559,9 +601,9 @@
             if (!isAdmin) return;
             if (stateHistory.length > 0) {
                 db = JSON.parse(stateHistory.pop());
-                [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
-                    arr.forEach(c => { if (!c.p) c.p = []; });
-                });
+                db.courtsCombined = cleanCourts(db.courtsCombined, db.maxCourtsCombined);
+                db.courtsA = cleanCourts(db.courtsA, db.maxCourtsA);
+                db.courtsB = cleanCourts(db.courtsB, db.maxCourtsB);
                 manualSelectedIds = [];
                 updateUndoButton();
                 saveToCloud();
@@ -651,13 +693,14 @@
                 db = { 
                     mode: 'combined',
                     maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
-                    courtsCombined: [], courtsA: [], courtsB: [],
+                    courtsCombined: cleanCourts([], 6),
+                    courtsA: cleanCourts([], 3),
+                    courtsB: cleanCourts([], 3),
                     queueCombined: [], queueA: [], queueB: [],
                     players: [], dailyCounter: 1, history: {} 
                 };
                 stateHistory = [];
                 manualSelectedIds = [];
-                adjustAllCourts();
                 saveToCloud();
                 alert("初期化が完了しました。");
             } else if (input !== null) {
@@ -719,23 +762,8 @@
             if (n >= 1 && n <= 12) {
                 saveStateToHistory();
                 db[valKey] = n;
-                adjustCourtArray(arrKey, valKey);
+                db[arrKey] = cleanCourts(db[arrKey], n); // 安全に配列を伸縮
                 saveToCloud();
-            }
-        }
-
-        function adjustAllCourts() {
-            adjustCourtArray('courtsCombined', 'maxCourtsCombined');
-            adjustCourtArray('courtsA', 'maxCourtsA');
-            adjustCourtArray('courtsB', 'maxCourtsB');
-        }
-        function adjustCourtArray(arrKey, maxKey) {
-            let maxNum = parseInt(db[maxKey], 10) || 0;
-            while (db[arrKey].length < maxNum) {
-                db[arrKey].push({ id: db[arrKey].length + 1, p: [], selected: false });
-            }
-            while (db[arrKey].length > maxNum) {
-                db[arrKey].pop();
             }
         }
 
@@ -766,9 +794,11 @@
                         delete p.team; 
                     });
                     db.queueCombined = []; db.queueA = []; db.queueB = [];
-                    [db.courtsCombined, db.courtsA, db.courtsB].forEach(arr => {
-                        arr.forEach(c => { c.p = []; c.selected = false; });
-                    });
+                    
+                    db.courtsCombined = cleanCourts([], db.maxCourtsCombined);
+                    db.courtsA = cleanCourts([], db.maxCourtsA);
+                    db.courtsB = cleanCourts([], db.maxCourtsB);
+
                     manualSelectedIds = [];
                     saveToCloud();
                     alert("練習を終了し、全員をリセットしました。");
@@ -903,7 +933,6 @@
             else if (currentViewRank === 'A') db.queueA = unselectedQueue;
             else db.queueB = unselectedQueue;
             
-            // ★V38: 万が一の幽霊バグ防止のため必ず空にする
             court.p = []; 
 
             finalPlayers.forEach(id => {
@@ -942,7 +971,6 @@
             
             for (let i = 0; i < courtsToFill; i++) {
                 let court = emptyCourts[i];
-                // ★V38: 万が一の幽霊バグ防止のため必ず空にする
                 court.p = []; 
                 let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
@@ -1322,7 +1350,6 @@
             let matchTitleEl = document.getElementById('matchHeaderTitle');
             document.body.classList.remove('mode-combined', 'mode-split-A', 'mode-split-B');
 
-            // ★V38: タイトル文字のレイアウト調整（スマホで重ならないように修正）
             if (db.mode === 'combined') {
                 document.body.classList.add('mode-combined');
                 matchTitleEl.innerHTML = `
@@ -1363,6 +1390,9 @@
             let courtsHtml = "";
             let activeCourts = getActiveCourts();
             activeCourts.forEach((c, idx) => {
+                // 万が一のための安全策（undefinedエラー防止）
+                if (!c || !c.p) return;
+
                 let p1 = db.players.find(pl => pl.id === c.p[0]);
                 let p2 = db.players.find(pl => pl.id === c.p[1]);
                 let p3 = db.players.find(pl => pl.id === c.p[2]);
@@ -1375,7 +1405,6 @@
 
                 let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
-                // ★V38: 文字列として結合されるバグを防ぐため、必ず数値(parseInt)として足し算を行う
                 let displayCourtId = parseInt(c.id, 10);
                 if (db.mode === 'split' && currentViewRank === 'B') {
                     displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
