@@ -169,7 +169,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V56</h1>
+            <h1 class="header-title">V57</h1>
             <span class="admin-badge">監督</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -370,7 +370,10 @@
         firebase.initializeApp(firebaseConfig);
 
         const urlParams = new URLSearchParams(window.location.search);
-        const allowedGroups = { 'yyc': 'secret' };
+        const allowedGroups = { 
+            'yyc': 'secret',
+            'nbo': 'himitsu'  // ★V57: nboを追加（パスワードは仮に himitsu）
+        };
         const groupId = urlParams.get('g');
 
         if (!groupId || !allowedGroups.hasOwnProperty(groupId)) {
@@ -384,6 +387,9 @@
         const isAdmin = urlParams.get('p') === allowedGroups[groupId]; 
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
+        // ==========================================
+        // データクリーニング関数
+        // ==========================================
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
@@ -490,7 +496,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v56_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v57_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -1116,7 +1122,6 @@
                 let rnk = p.rank === 'A' ? '上級' : '中級';
                 let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
-                // ★V56: 幅を広く(56px)確保し、絶対に改行させない(white-space:nowrap)よう修正
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
@@ -1312,7 +1317,6 @@
                     db.players.filter(p => p.status === 'inactive').forEach(p => {
                         let breakBadge = p.dailyNum ? '<span style="color:#DC2626; font-size:0.85em; font-weight:bold; margin-left:8px;">(休憩)</span>' : '';
                         let rnkStr = p.rank === 'A' ? '上級' : '中級';
-                        // ★V56: 幅を広く(48px以上確保)して改行を防ぐ
                         let rankBadge = `<span class="rank-badge rank-${p.rank}" style="display:inline-block; min-width:48px; text-align:center; white-space:nowrap;">${rnkStr}</span>`;
 
                         inactiveHtml += `
@@ -1402,10 +1406,10 @@
                 activeCourts.forEach((c, idx) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return;
 
-                    let p1 = c.p.length > 0 ? (db.players.find(pl => String(pl.id) === String(c.p[0])) || {name:"不明", rank:"B", team:"B"}) : null;
-                    let p2 = c.p.length > 1 ? (db.players.find(pl => String(pl.id) === String(c.p[1])) || {name:"不明", rank:"B", team:"B"}) : null;
-                    let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B"}) : null;
-                    let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B"}) : null;
+                    let p1 = c.p.length > 0 ? (db.players.find(pl => String(pl.id) === String(c.p[0])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
+                    let p2 = c.p.length > 1 ? (db.players.find(pl => String(pl.id) === String(c.p[1])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
+                    let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
+                    let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B", dailyNum:""}) : null;
                     
                     let p1Text = p1 ? getPlayerDisplayName(p1) : "";
                     let p2Text = p2 ? getPlayerDisplayName(p2) : "";
