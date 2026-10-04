@@ -124,6 +124,29 @@
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
         .court-title { font-weight: 900; font-size: 1.2rem; } 
         
+        /* ★V61: 最後にINしたコートを強調表示するスタイル */
+        .court-card.highlight {
+            border: 3px solid #F59E0B !important; 
+            background: #FFFBEB !important;       
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            position: relative;
+        }
+        .court-card.highlight::before {
+            content: "NEW";
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            background: #EF4444;
+            color: white;
+            font-weight: 900;
+            font-size: 0.9rem;
+            padding: 4px 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transform: rotate(-10deg);
+            z-index: 10;
+        }
+        
         .team-box { 
             background: #F8FAFC; border-radius: 16px; padding: 16px 8px; flex: 1; text-align: center; border: 4px solid transparent; transition: all 0.2s;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -176,7 +199,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V60</h1>
+            <h1 class="header-title">V61</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -381,9 +404,12 @@
         firebase.initializeApp(firebaseConfig);
 
         const urlParams = new URLSearchParams(window.location.search);
+        
+        // ★V61: yyc_test環境を追加（パスワード: test）
         const allowedGroups = { 
             'yyc': 'secret',
-            'nbo': 'himitsu' 
+            'nbo': 'himitsu',
+            'yyc_test': 'test'
         };
         const groupId = urlParams.get('g');
 
@@ -405,15 +431,16 @@
             return temp.filter(x => x !== null && x !== undefined && x !== "").map(Number).filter(x => !isNaN(x));
         };
 
+        // ★V61: クリーン時に highlight フラグを保持する
         const cleanCourts = (courtsData, maxNum) => {
             let arr = [];
             if (courtsData) {
                 let temp = Array.isArray(courtsData) ? courtsData : Object.values(courtsData);
                 arr = temp.map(c => {
                     if (typeof c === 'object' && c !== null) {
-                        return { id: c.id || 0, p: [...(c.p || [])], selected: !!c.selected };
+                        return { id: c.id || 0, p: [...(c.p || [])], selected: !!c.selected, highlight: !!c.highlight };
                     }
-                    return { p: [], selected: false }; 
+                    return { p: [], selected: false, highlight: false }; 
                 });
             }
             arr.forEach((c, i) => {
@@ -421,7 +448,7 @@
                 c.p = toNumArray(c.p); 
             });
             let targetMax = parseInt(maxNum, 10) || 0;
-            while (arr.length < targetMax) arr.push({ id: arr.length + 1, p: [], selected: false });
+            while (arr.length < targetMax) arr.push({ id: arr.length + 1, p: [], selected: false, highlight: false });
             while (arr.length > targetMax) arr.pop();
             return arr;
         };
@@ -477,11 +504,9 @@
             activateView(view);
         }
 
-        // ★V60: どんな入力（大文字・全角）をされても自動補正して正解にする超・強力なログイン処理
         function adminLogin() {
             let pwd = prompt("監督用パスワードを入力してください");
             if (pwd !== null) {
-                // 前後の空白を消し、小文字にし、全角英数字を半角に自動変換する
                 let cleanPwd = pwd.trim().toLowerCase().replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
                     return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
                 });
@@ -497,7 +522,6 @@
                     activateView(savedTab);
                     render();
                 } else if (cleanPwd !== "") {
-                    // 何と入力して間違えたのかダイアログに表示してあげる
                     alert(`パスワードが違います。\n(入力された文字: ${pwd})`);
                 }
             }
@@ -545,7 +569,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v60_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v61_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -931,7 +955,8 @@
                     else db.queueB.push(id);
                 }
             });
-            court.p = []; court.selected = false;
+            // ★V61: 試合終了時はNEWバッジを消す
+            court.p = []; court.selected = false; court.highlight = false;
             saveToCloud();
         }
 
@@ -962,6 +987,9 @@
 
             saveStateToHistory();
             
+            // ★V61: 新しくINする前に他のコートのハイライトをすべて消す
+            courts.forEach(c => c.highlight = false);
+            
             let additional = unselectedQueue.splice(0, remainingNeeded);
             let finalPlayers = [...selectedPlayersToEnter, ...additional];
             
@@ -979,6 +1007,9 @@
             });
             
             courts[idx].p.sort(() => Math.random() - 0.5);
+            // ★V61: 今回INしたコートだけハイライトする
+            courts[idx].highlight = true; 
+            
             manualSelectedIds = manualSelectedIds.filter(id => !finalPlayers.includes(id));
             saveToCloud();
         }
@@ -1005,6 +1036,10 @@
             }
 
             saveStateToHistory();
+            
+            // ★V61: 新しくINする前に他のコートのハイライトをすべて消す
+            courts.forEach(c => c.highlight = false);
+            
             queue.sort(() => Math.random() - 0.5);
             let playersToAssign = queue.splice(0, courtsToFill * 4);
             
@@ -1015,6 +1050,10 @@
             for (let i = 0; i < courtsToFill; i++) {
                 let cIdx = emptyIdxs[i];
                 courts[cIdx].p = []; 
+                
+                // ★V61: 今回INしたコートだけハイライトする
+                courts[cIdx].highlight = true;
+                
                 let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
                     let p = db.players.find(pl => String(pl.id) === String(id));
@@ -1043,6 +1082,10 @@
             if (selectedIdxs.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
 
             saveStateToHistory();
+            
+            // ★V61: 新しくシャッフルする前に他のコートのハイライトをすべて消す
+            courts.forEach(c => c.highlight = false);
+            
             let targetPlayers = [];
             selectedIdxs.forEach(idx => { 
                 targetPlayers.push(...courts[idx].p); 
@@ -1056,6 +1099,10 @@
                 let cap = Math.min(4, targetPlayers.length - splitIndex);
                 if (cap < 4 && targetPlayers.length > 4) cap = 4;
                 courts[idx].p = targetPlayers.slice(splitIndex, splitIndex + cap);
+                
+                // ★V61: 今回シャッフルしたコートだけハイライトする
+                courts[idx].highlight = true;
+                
                 splitIndex += cap;
             });
             saveToCloud();
@@ -1469,9 +1516,12 @@
                         displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                     }
 
+                    // ★V61: highlightフラグがある場合はハイライト専用のCSSクラスを付ける
+                    let highlightClass = c.highlight ? "highlight" : "";
+
                     if (c.p.length > 0) {
                         courtsHtml += `
-                            <div class="court-card">
+                            <div class="court-card ${highlightClass}">
                                 <div class="court-header">
                                     <span class="court-title" style="color:var(--text-main);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span>
                                 </div>
