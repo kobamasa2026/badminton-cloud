@@ -1,27 +1,3 @@
-現場でのテスト運用、そしてさっそく「実際の現場で起こりうる運用上の課題（入り間違い）」に気づかれた点、素晴らしいマネジメント視点だと思います。
-
-ご提案の通り、「誰かが間違えてコートに入ってしまい、そのまま試合を進めることになった場合」のリカバリー機能は絶対に必要です。
-
-画面のレイアウト（既存のクリック操作）を邪魔せず、最も確実かつ安全に修正できる「入替（テレコ）専用ダイアログ機能」を搭載した「V64」を作成いたしました。
-
-V64での追加機能：🔄 入替（テレコ）機能
-「戻る」ボタンの横に「入替」ボタンを追加
-画面右上のヘッダーにオレンジ色の「🔄 入替」ボタンを設置しました。
-
-確実なダイアログ選択方式
-入替ボタンを押すと専用の画面が開き、「選手A」と「選手B」をリストから選んで「入れ替える」を押すだけで完了します。
-
-場所と「プレイ回数」の完全自動修正
-
-コート内同士の入替：プレイ回数は変わらず、場所だけが入れ替わります。
-
-待機列同士の入替：プレイ回数は変わらず、順番だけが入れ替わります。
-
-「コートの中」と「待機列」の入替：コートに入った人（本来は待機だった人）のプレイ回数が +1 され、待機列に戻された人（本来はコートだった人）のプレイ回数が -1 され、状態（IN/OUT）も完璧に自動修正されます。
-
-以下のコードを index.html に上書き保存し、ブラウザをリロード（Shift + F5）して現場でご確認ください！
-
-HTML
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -196,7 +172,7 @@ HTML
         .member-name { font-weight: 900; font-size: 1.2rem; display: flex; align-items: center;}
         .member-meta { font-size: 0.9rem; color: var(--text-sub); display: flex; gap: 8px; font-weight: bold;}
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: flex-end; padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
         .modal-content { background: var(--bg-surface); padding: 24px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; animation: slideUp 0.2s ease-out; }
 
         .rank-badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; border: 1px solid transparent; }
@@ -222,13 +198,12 @@ HTML
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V64</h1>
+            <h1 class="header-title">V65</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
         
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <!-- ★V64: 戻るボタンの横に「入替（テレコ）」ボタンを追加 -->
             <button class="btn-undo admin-only" onclick="openSwapModal()" style="background:#FEF3C7; color:#D97706;"><span>🔄</span> 入替</button>
             <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
             <button id="btnLogin" class="btn-undo viewer-only" style="background:#E5E7EB; width:36px; justify-content:center;" onclick="adminLogin()">🔒</button>
@@ -295,6 +270,14 @@ HTML
 
         <div id="view-maintenance" class="view admin-only">
             
+            <!-- ★V65: マニュアル呼び出しカードを追加 -->
+            <div class="card">
+                <div class="section-title">使い方マニュアル</div>
+                <button class="btn-secondary" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px;" onclick="document.getElementById('manualModal').style.display='flex'">
+                    <span style="font-size:1.2rem;">📖</span> 機能概要と使い方を読む
+                </button>
+            </div>
+
             <div class="card">
                 <div class="section-title">運用モードとコート数</div>
                 <div style="margin-bottom:16px;">
@@ -413,7 +396,7 @@ HTML
         </div>
     </div>
 
-    <!-- ★V64: モーダル（入替/テレコ専用） -->
+    <!-- モーダル（入替/テレコ専用） -->
     <div class="modal-overlay admin-only" id="swapModal" onclick="closeSwapModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 style="margin-top:0; font-size:1.4rem; font-weight:900;">🔄 選手の入替（テレコ）</h2>
@@ -427,6 +410,50 @@ HTML
             </div>
             <button class="btn-primary" style="background:#F59E0B; margin-bottom:12px;" onclick="executeSwap()">この2名を入れ替える</button>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeSwapModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- ★V65: 使い方マニュアル用モーダル -->
+    <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
+        <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V65)</h2>
+            <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li>右上の「🔒」からパスワード入力で監督モードに。（大文字・全角・スペースは自動補正されます）</li>
+                    <li>一般参加者のスマホからは操作できず、待機順の「プレイ回数」も見えないようになっています。</li>
+                    <li>終了時は「監督 (OUT)」バッジをタップでログアウト。</li>
+                </ul>
+                
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. 受付（練習開始）</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li>「受付」タブで名簿のメンバーをタップすると待機列に入ります。（上級者は赤文字）</li>
+                    <li>「休憩にする」で一時的に列から外せます。</li>
+                </ul>
+
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 試合の進行</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li><b>一斉IN</b>：空きコート全てに待機列先頭から4人ずつランダムに入ります。</li>
+                    <li><b>個別IN</b>：空きコートの「▶ IN」で先頭4人が入ります。</li>
+                    <li><b>優先IN</b>：待機列のメンバーをタップ（黄色枠）してからINすると優先的に入ります。</li>
+                    <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
+                    <li><b>シャッフル</b>：チーム枠をタップ（ピンク色）し「🔁 シャッフル」で選択したコート内だけでペア・対戦相手を組み直します。</li>
+                    <li>※直近で操作したコートには「NEW」バッジが付き、変化がひと目で分かります。</li>
+                </ul>
+
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">4. 修正機能</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li><b>戻る (↩)</b>：直前の操作を1つ取り消します。</li>
+                    <li><b>入替 (🔄)</b>：間違えてコートに入ってしまった場合など、指定した2名の場所（コート⇄待機列など）とプレイ回数を自動で入れ替えます。</li>
+                </ul>
+
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">5. 練習の終了と保守</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li>受付タブの「練習を終了する」で本日の回数・最終チームが履歴に保存され、全員がリセットされます。</li>
+                    <li>「保守」タブで、コート数変更や運用モード（合同/分割）の切り替え、CSVの入出力が行えます。</li>
+                </ul>
+            </div>
+            <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeManualModal()">閉じる</button>
         </div>
     </div>
 
@@ -617,7 +644,7 @@ HTML
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v64_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v65_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -784,7 +811,7 @@ HTML
         }
 
         // ==========================================
-        // ★V64: 選手入替（テレコ）機能
+        // 入替（テレコ）機能・マニュアル呼び出し機能
         // ==========================================
         function openSwapModal() {
             if (!isAdmin) return;
@@ -807,6 +834,12 @@ HTML
         function closeSwapModal(e) {
             if(e && e.target !== document.getElementById('swapModal')) return;
             document.getElementById('swapModal').style.display = 'none';
+        }
+        
+        // ★V65: マニュアルモーダル開閉
+        function closeManualModal(e) {
+            if(e && e.target !== document.getElementById('manualModal')) return;
+            document.getElementById('manualModal').style.display = 'none';
         }
 
         function findPlayerLocation(id) {
@@ -862,11 +895,9 @@ HTML
                 return;
             }
 
-            // 物理的な位置を入れ替える
             setPlayerAtLocation(loc1, p2Id);
             setPlayerAtLocation(loc2, p1Id);
 
-            // ステータスとプレイ回数の自動補正
             let p1Obj = db.players.find(p => String(p.id) === String(p1Id));
             let p2Obj = db.players.find(p => String(p.id) === String(p2Id));
 
@@ -874,17 +905,13 @@ HTML
             let p2WasPlaying = (loc2.type === 'court');
 
             if (p1WasPlaying && !p2WasPlaying) {
-                // P1は待機列に戻るので -1回
                 p1Obj.playCount = Math.max(0, p1Obj.playCount - 1);
                 p1Obj.status = 'waiting';
-                // P2はコートに入るので +1回
                 p2Obj.playCount++;
                 p2Obj.status = 'playing';
             } else if (!p1WasPlaying && p2WasPlaying) {
-                // P1はコートに入るので +1回
                 p1Obj.playCount++;
                 p1Obj.status = 'playing';
-                // P2は待機列に戻るので -1回
                 p2Obj.playCount = Math.max(0, p2Obj.playCount - 1);
                 p2Obj.status = 'waiting';
             }
@@ -927,28 +954,6 @@ HTML
             }
             manualSelectedIds = [];
             saveToCloud();
-        }
-
-        function confirmResetAll() {
-            if (!isAdmin) return;
-            let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
-            if (input === "削除") {
-                db = { 
-                    mode: 'combined',
-                    maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
-                    courtsCombined: cleanCourts([], 6),
-                    courtsA: cleanCourts([], 3),
-                    courtsB: cleanCourts([], 3),
-                    queueCombined: [], queueA: [], queueB: [],
-                    players: [], dailyCounter: 1, history: {} 
-                };
-                stateHistory = [];
-                manualSelectedIds = [];
-                saveToCloud();
-                alert("初期化が完了しました。");
-            } else if (input !== null) {
-                alert("入力が一致しません。初期化をキャンセルしました。");
-            }
         }
 
         function changeMaxCourts(targetKey, delta) {
