@@ -1,3 +1,27 @@
+現場でのテスト運用、そしてさっそく「実際の現場で起こりうる運用上の課題（入り間違い）」に気づかれた点、素晴らしいマネジメント視点だと思います。
+
+ご提案の通り、「誰かが間違えてコートに入ってしまい、そのまま試合を進めることになった場合」のリカバリー機能は絶対に必要です。
+
+画面のレイアウト（既存のクリック操作）を邪魔せず、最も確実かつ安全に修正できる「入替（テレコ）専用ダイアログ機能」を搭載した「V64」を作成いたしました。
+
+V64での追加機能：🔄 入替（テレコ）機能
+「戻る」ボタンの横に「入替」ボタンを追加
+画面右上のヘッダーにオレンジ色の「🔄 入替」ボタンを設置しました。
+
+確実なダイアログ選択方式
+入替ボタンを押すと専用の画面が開き、「選手A」と「選手B」をリストから選んで「入れ替える」を押すだけで完了します。
+
+場所と「プレイ回数」の完全自動修正
+
+コート内同士の入替：プレイ回数は変わらず、場所だけが入れ替わります。
+
+待機列同士の入替：プレイ回数は変わらず、順番だけが入れ替わります。
+
+「コートの中」と「待機列」の入替：コートに入った人（本来は待機だった人）のプレイ回数が +1 され、待機列に戻された人（本来はコートだった人）のプレイ回数が -1 され、状態（IN/OUT）も完璧に自動修正されます。
+
+以下のコードを index.html に上書き保存し、ブラウザをリロード（Shift + F5）して現場でご確認ください！
+
+HTML
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -198,12 +222,14 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V63</h1>
+            <h1 class="header-title">V64</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
         
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
+            <!-- ★V64: 戻るボタンの横に「入替（テレコ）」ボタンを追加 -->
+            <button class="btn-undo admin-only" onclick="openSwapModal()" style="background:#FEF3C7; color:#D97706;"><span>🔄</span> 入替</button>
             <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
             <button id="btnLogin" class="btn-undo viewer-only" style="background:#E5E7EB; width:36px; justify-content:center;" onclick="adminLogin()">🔒</button>
         </div>
@@ -355,7 +381,7 @@
         </button>
     </nav>
 
-    <!-- モーダル -->
+    <!-- モーダル（既存のステータス変更用） -->
     <div class="modal-overlay admin-only" id="statusModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
@@ -384,6 +410,23 @@
             </div>
             <button class="btn-primary" style="margin-bottom:12px;" onclick="saveEditMember()">保存する</button>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeEditMemberModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- ★V64: モーダル（入替/テレコ専用） -->
+    <div class="modal-overlay admin-only" id="swapModal" onclick="closeSwapModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900;">🔄 選手の入替（テレコ）</h2>
+            <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:16px; font-weight:bold; text-align:left;">
+                間違ってコートに入った場合など、2名の位置を直接入れ替えます。<br>（IN/OUT状態やプレイ回数も自動で正しく修正されます）
+            </p>
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px; text-align:left;">
+                <select id="swapPlayer1" class="input-text" style="font-size:1.1rem; padding:12px; font-weight:bold;"></select>
+                <div style="text-align:center; color:var(--text-sub); font-size:1.5rem; font-weight:bold;">⇅</div>
+                <select id="swapPlayer2" class="input-text" style="font-size:1.1rem; padding:12px; font-weight:bold;"></select>
+            </div>
+            <button class="btn-primary" style="background:#F59E0B; margin-bottom:12px;" onclick="executeSwap()">この2名を入れ替える</button>
+            <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeSwapModal()">キャンセル</button>
         </div>
     </div>
 
@@ -574,7 +617,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v63_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v64_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -740,26 +783,114 @@
             saveToCloud();
         }
 
-        function confirmResetAll() {
+        // ==========================================
+        // ★V64: 選手入替（テレコ）機能
+        // ==========================================
+        function openSwapModal() {
             if (!isAdmin) return;
-            let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
-            if (input === "削除") {
-                db = { 
-                    mode: 'combined',
-                    maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
-                    courtsCombined: cleanCourts([], 6),
-                    courtsA: cleanCourts([], 3),
-                    courtsB: cleanCourts([], 3),
-                    queueCombined: [], queueA: [], queueB: [],
-                    players: [], dailyCounter: 1, history: {} 
-                };
-                stateHistory = [];
-                manualSelectedIds = [];
-                saveToCloud();
-                alert("初期化が完了しました。");
-            } else if (input !== null) {
-                alert("入力が一致しません。初期化をキャンセルしました。");
+            
+            let presentPlayers = db.players.filter(p => p.status !== 'inactive');
+            presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
+            
+            let optionsHtml = '<option value="">-- 選択してください --</option>';
+            presentPlayers.forEach(p => {
+                let locStr = p.status === 'playing' ? '試合中' : '待機列';
+                let tStr = (db.mode === 'split') ? (p.team + 'チーム, ') : '';
+                optionsHtml += `<option value="${p.id}">${p.dailyNum ? p.dailyNum + '. ' : ''}${p.name} (${tStr}${locStr})</option>`;
+            });
+            
+            document.getElementById('swapPlayer1').innerHTML = optionsHtml;
+            document.getElementById('swapPlayer2').innerHTML = optionsHtml;
+            document.getElementById('swapModal').style.display = 'flex';
+        }
+
+        function closeSwapModal(e) {
+            if(e && e.target !== document.getElementById('swapModal')) return;
+            document.getElementById('swapModal').style.display = 'none';
+        }
+
+        function findPlayerLocation(id) {
+            id = Number(id);
+            let loc = null;
+            
+            [db.courtsCombined, db.courtsA, db.courtsB].forEach(courts => {
+                courts.forEach((c, cIdx) => {
+                    let pIdx = c.p.indexOf(id);
+                    if (pIdx !== -1) loc = { type: 'court', courtsArr: courts, cIdx: cIdx, pIdx: pIdx };
+                });
+            });
+            if (loc) return loc;
+
+            [db.queueCombined, db.queueA, db.queueB].forEach(q => {
+                let qIdx = q.indexOf(id);
+                if (qIdx !== -1) loc = { type: 'queue', qArr: q, qIdx: qIdx };
+            });
+            return loc;
+        }
+
+        function setPlayerAtLocation(loc, id) {
+            id = Number(id);
+            if (loc.type === 'court') {
+                loc.courtsArr[loc.cIdx].p[loc.pIdx] = id;
+            } else if (loc.type === 'queue') {
+                loc.qArr[loc.qIdx] = id;
             }
+        }
+
+        function executeSwap() {
+            if(!isAdmin) return;
+            let p1Id = document.getElementById('swapPlayer1').value;
+            let p2Id = document.getElementById('swapPlayer2').value;
+
+            if(!p1Id || !p2Id) {
+                alert("入れ替える2名を選択してください。");
+                return;
+            }
+            if(p1Id === p2Id) {
+                alert("異なる2名を選択してください。");
+                return;
+            }
+
+            saveStateToHistory();
+
+            let loc1 = findPlayerLocation(p1Id);
+            let loc2 = findPlayerLocation(p2Id);
+
+            if(!loc1 || !loc2) {
+                alert("選手の現在の場所が特定できませんでした。参加受付済みのメンバーを選択してください。");
+                stateHistory.pop(); 
+                return;
+            }
+
+            // 物理的な位置を入れ替える
+            setPlayerAtLocation(loc1, p2Id);
+            setPlayerAtLocation(loc2, p1Id);
+
+            // ステータスとプレイ回数の自動補正
+            let p1Obj = db.players.find(p => String(p.id) === String(p1Id));
+            let p2Obj = db.players.find(p => String(p.id) === String(p2Id));
+
+            let p1WasPlaying = (loc1.type === 'court');
+            let p2WasPlaying = (loc2.type === 'court');
+
+            if (p1WasPlaying && !p2WasPlaying) {
+                // P1は待機列に戻るので -1回
+                p1Obj.playCount = Math.max(0, p1Obj.playCount - 1);
+                p1Obj.status = 'waiting';
+                // P2はコートに入るので +1回
+                p2Obj.playCount++;
+                p2Obj.status = 'playing';
+            } else if (!p1WasPlaying && p2WasPlaying) {
+                // P1はコートに入るので +1回
+                p1Obj.playCount++;
+                p1Obj.status = 'playing';
+                // P2は待機列に戻るので -1回
+                p2Obj.playCount = Math.max(0, p2Obj.playCount - 1);
+                p2Obj.status = 'waiting';
+            }
+
+            closeSwapModal();
+            saveToCloud();
         }
 
         function changeOperationMode(newMode) {
@@ -796,6 +927,28 @@
             }
             manualSelectedIds = [];
             saveToCloud();
+        }
+
+        function confirmResetAll() {
+            if (!isAdmin) return;
+            let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
+            if (input === "削除") {
+                db = { 
+                    mode: 'combined',
+                    maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
+                    courtsCombined: cleanCourts([], 6),
+                    courtsA: cleanCourts([], 3),
+                    courtsB: cleanCourts([], 3),
+                    queueCombined: [], queueA: [], queueB: [],
+                    players: [], dailyCounter: 1, history: {} 
+                };
+                stateHistory = [];
+                manualSelectedIds = [];
+                saveToCloud();
+                alert("初期化が完了しました。");
+            } else if (input !== null) {
+                alert("入力が一致しません。初期化をキャンセルしました。");
+            }
         }
 
         function changeMaxCourts(targetKey, delta) {
@@ -1052,15 +1205,15 @@
             
             for (let i = 0; i < courtsToFill; i++) {
                 let cIdx = emptyIdxs[i];
-                let group = playersToAssign.slice(i * 4, i * 4 + 4);
+                courts[cIdx].p = []; 
                 
-                courts[cIdx].p = group;
                 courts[cIdx].highlight = true;
                 
+                let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
                     let p = db.players.find(pl => String(pl.id) === String(id));
                     if (p) {
-                        p.status = 'playing'; p.playCount++;
+                        p.status = 'playing'; p.playCount++; courts[cIdx].p.push(id);
                     }
                 });
             }
@@ -1482,7 +1635,6 @@
                         let isSelected = isAdmin && manualSelectedIds.includes(id);
                         let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "");
                         
-                        // ★V63: プレイ回数は管理者（監督）のみ表示するよう admin-only クラスを追加
                         nextHtml += `
                             <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
                                 <div class="next-slot-name">${formatNameHTML(p)}</div>
