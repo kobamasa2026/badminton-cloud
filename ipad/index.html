@@ -124,7 +124,6 @@
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
         .court-title { font-weight: 900; font-size: 1.2rem; } 
         
-        /* ★V61: 最後にINしたコートを強調表示するスタイル */
         .court-card.highlight {
             border: 3px solid #F59E0B !important; 
             background: #FFFBEB !important;       
@@ -199,7 +198,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V61</h1>
+            <h1 class="header-title">V63</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -405,7 +404,6 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         
-        // ★V61: yyc_test環境を追加（パスワード: test）
         const allowedGroups = { 
             'yyc': 'secret',
             'nbo': 'himitsu',
@@ -425,13 +423,20 @@
         
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         const toNumArray = (arr) => {
             if (!arr || typeof arr !== 'object') return [];
             let temp = Array.isArray(arr) ? arr : Object.values(arr);
             return temp.filter(x => x !== null && x !== undefined && x !== "").map(Number).filter(x => !isNaN(x));
         };
 
-        // ★V61: クリーン時に highlight フラグを保持する
         const cleanCourts = (courtsData, maxNum) => {
             let arr = [];
             if (courtsData) {
@@ -569,7 +574,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v61_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v63_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -945,7 +950,10 @@
             saveStateToHistory();
             let courts = getActiveCourts();
             let court = courts[idx];
-            let leaving = [...(court.p || [])].sort(() => Math.random() - 0.5);
+            
+            let leaving = [...(court.p || [])];
+            shuffleArray(leaving);
+            
             leaving.forEach(id => {
                 let player = db.players.find(p => String(p.id) === String(id));
                 if (player) { 
@@ -955,7 +963,6 @@
                     else db.queueB.push(id);
                 }
             });
-            // ★V61: 試合終了時はNEWバッジを消す
             court.p = []; court.selected = false; court.highlight = false;
             saveToCloud();
         }
@@ -987,7 +994,6 @@
 
             saveStateToHistory();
             
-            // ★V61: 新しくINする前に他のコートのハイライトをすべて消す
             courts.forEach(c => c.highlight = false);
             
             let additional = unselectedQueue.splice(0, remainingNeeded);
@@ -997,19 +1003,17 @@
             else if (currentViewRank === 'A') db.queueA = unselectedQueue;
             else db.queueB = unselectedQueue;
             
-            courts[idx].p = []; 
+            shuffleArray(finalPlayers);
+            courts[idx].p = finalPlayers;
 
             finalPlayers.forEach(id => {
                 let p = db.players.find(pl => String(pl.id) === String(id));
                 if (p) {
-                    p.status = 'playing'; p.playCount++; courts[idx].p.push(id);
+                    p.status = 'playing'; p.playCount++;
                 }
             });
             
-            courts[idx].p.sort(() => Math.random() - 0.5);
-            // ★V61: 今回INしたコートだけハイライトする
             courts[idx].highlight = true; 
-            
             manualSelectedIds = manualSelectedIds.filter(id => !finalPlayers.includes(id));
             saveToCloud();
         }
@@ -1036,29 +1040,27 @@
             }
 
             saveStateToHistory();
-            
-            // ★V61: 新しくINする前に他のコートのハイライトをすべて消す
             courts.forEach(c => c.highlight = false);
             
-            queue.sort(() => Math.random() - 0.5);
             let playersToAssign = queue.splice(0, courtsToFill * 4);
             
             if (db.mode === 'combined') db.queueCombined = queue;
             else if (currentViewRank === 'A') db.queueA = queue;
             else db.queueB = queue;
             
+            shuffleArray(playersToAssign);
+            
             for (let i = 0; i < courtsToFill; i++) {
                 let cIdx = emptyIdxs[i];
-                courts[cIdx].p = []; 
+                let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 
-                // ★V61: 今回INしたコートだけハイライトする
+                courts[cIdx].p = group;
                 courts[cIdx].highlight = true;
                 
-                let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 group.forEach(id => {
                     let p = db.players.find(pl => String(pl.id) === String(id));
                     if (p) {
-                        p.status = 'playing'; p.playCount++; courts[cIdx].p.push(id);
+                        p.status = 'playing'; p.playCount++;
                     }
                 });
             }
@@ -1082,8 +1084,6 @@
             if (selectedIdxs.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
 
             saveStateToHistory();
-            
-            // ★V61: 新しくシャッフルする前に他のコートのハイライトをすべて消す
             courts.forEach(c => c.highlight = false);
             
             let targetPlayers = [];
@@ -1092,17 +1092,15 @@
                 courts[idx].p = []; 
                 courts[idx].selected = false; 
             });
-            targetPlayers.sort(() => Math.random() - 0.5);
+            
+            shuffleArray(targetPlayers);
             
             let splitIndex = 0;
             selectedIdxs.forEach(idx => { 
                 let cap = Math.min(4, targetPlayers.length - splitIndex);
                 if (cap < 4 && targetPlayers.length > 4) cap = 4;
                 courts[idx].p = targetPlayers.slice(splitIndex, splitIndex + cap);
-                
-                // ★V61: 今回シャッフルしたコートだけハイライトする
                 courts[idx].highlight = true;
-                
                 splitIndex += cap;
             });
             saveToCloud();
@@ -1484,10 +1482,11 @@
                         let isSelected = isAdmin && manualSelectedIds.includes(id);
                         let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "");
                         
+                        // ★V63: プレイ回数は管理者（監督）のみ表示するよう admin-only クラスを追加
                         nextHtml += `
                             <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
                                 <div class="next-slot-name">${formatNameHTML(p)}</div>
-                                <div style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
+                                <div class="admin-only" style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
                             </div>`;
                     });
                 }
@@ -1516,7 +1515,6 @@
                         displayCourtId = parseInt(db.maxCourtsA, 10) + parseInt(c.id, 10);
                     }
 
-                    // ★V61: highlightフラグがある場合はハイライト専用のCSSクラスを付ける
                     let highlightClass = c.highlight ? "highlight" : "";
 
                     if (c.p.length > 0) {
