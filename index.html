@@ -110,6 +110,10 @@
         }
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--text-main); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
         .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
+        
+        /* ★V66: 一般参加者用の「通知ON」スタイル */
+        .next-slot.follow-selected { background: #E0F2FE; border: 4px solid #0EA5E9; color: #0369A1; box-shadow: 0 0 12px rgba(14, 165, 233, 0.5); transform: scale(1.05); }
+        
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
 
         .courts-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
@@ -159,6 +163,25 @@
             white-space: nowrap; width: 100%; display: block;
         }
         
+        /* ★V66: フォロー対象がコートにいる時のスタイル＆点滅アニメーション */
+        .player-name.player-followed {
+            background: #E0F2FE; color: #0369A1; border: 2px solid #0EA5E9; border-radius: 8px; padding: 2px 4px;
+        }
+        @keyframes blinkHighlightBg {
+            0%, 100% { background-color: #E0F2FE; border-color: #0EA5E9; }
+            50% { background-color: #0EA5E9; border-color: #0284C7; }
+        }
+        @keyframes blinkHighlightText {
+            0%, 100% { color: inherit; }
+            50% { color: white !important; }
+        }
+        .player-name.blink-animation {
+            animation: blinkHighlightBg 1s ease-in-out 10;
+        }
+        .player-name.blink-animation .inner-name {
+            animation: blinkHighlightText 1s ease-in-out 10;
+        }
+
         .vs-badge { background: transparent; color: var(--text-sub); font-size: 1.8rem; font-weight: 900; margin: 0 8px; }
         .match-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-grow: 1;}
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;}
@@ -198,7 +221,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V65</h1>
+            <h1 class="header-title">V66</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -214,12 +237,17 @@
         <div id="view-matches" class="view active">
             <div class="card" style="padding-bottom: 12px;">
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
-                    <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;">
-                        <!-- JSで動的にタイトルを描画 -->
+                    <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;"></div>
+                    
+                    <!-- ★V66: 一般参加者への通知機能の案内 -->
+                    <div class="viewer-only" style="font-size:0.85rem; color:#0EA5E9; font-weight:bold; margin-top:4px; text-align:center;">
+                        💡 待機中の名前をタップすると、コートに入った時に点滅してお知らせします。
                     </div>
+
                     <div style="font-size:0.95rem; color:var(--text-main); display:flex; justify-content:flex-end; gap:12px; font-weight:bold; margin-top:4px;">
                         <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:var(--status-next);"></div>NEXT</span>
-                        <span style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:#F59E0B;"></div>優先<span class="admin-only">（タップで選択）</span></span>
+                        <span class="admin-only" style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:#F59E0B;"></div>優先(監督のみ)</span>
+                        <span class="viewer-only" style="display:flex; align-items:center; gap:4px;"><div style="width:14px;height:14px;border-radius:50%;background:#0EA5E9;"></div>通知対象</span>
                     </div>
                 </div>
                 
@@ -234,6 +262,7 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
+        <!-- 他のタブ（受付・保守）のHTMLはそのまま維持 -->
         <div id="view-roster" class="view admin-only">
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
@@ -270,7 +299,6 @@
 
         <div id="view-maintenance" class="view admin-only">
             
-            <!-- ★V65: マニュアル呼び出しカードを追加 -->
             <div class="card">
                 <div class="section-title">使い方マニュアル</div>
                 <button class="btn-secondary" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px;" onclick="document.getElementById('manualModal').style.display='flex'">
@@ -364,7 +392,7 @@
         </button>
     </nav>
 
-    <!-- モーダル（既存のステータス変更用） -->
+    <!-- モーダル各種 -->
     <div class="modal-overlay admin-only" id="statusModal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modalPlayerName" style="margin-top:0; font-size:1.5rem; font-weight:900;">名前</h2>
@@ -374,7 +402,6 @@
         </div>
     </div>
 
-    <!-- モーダル（名簿マスタ編集用） -->
     <div class="modal-overlay admin-only" id="editMemberModal" onclick="closeEditMemberModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 style="margin-top:0; font-size:1.5rem; font-weight:900;">名簿の編集</h2>
@@ -396,7 +423,6 @@
         </div>
     </div>
 
-    <!-- モーダル（入替/テレコ専用） -->
     <div class="modal-overlay admin-only" id="swapModal" onclick="closeSwapModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 style="margin-top:0; font-size:1.4rem; font-weight:900;">🔄 選手の入替（テレコ）</h2>
@@ -413,10 +439,9 @@
         </div>
     </div>
 
-    <!-- ★V65: 使い方マニュアル用モーダル -->
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V65)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V66)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -431,26 +456,25 @@
                     <li>「休憩にする」で一時的に列から外せます。</li>
                 </ul>
 
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 試合の進行</h3>
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 試合の進行と音声コール・通知</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li><b>一斉IN</b>：空きコート全てに待機列先頭から4人ずつランダムに入ります。</li>
-                    <li><b>個別IN</b>：空きコートの「▶ IN」で先頭4人が入ります。</li>
+                    <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。<b>【V66機能】この時、端末から対象者の受付番号とコート番号が自動で音声読み上げされます。</b></li>
                     <li><b>優先IN</b>：待機列のメンバーをタップ（黄色枠）してからINすると優先的に入ります。</li>
                     <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
                     <li><b>シャッフル</b>：チーム枠をタップ（ピンク色）し「🔁 シャッフル」で選択したコート内だけでペア・対戦相手を組み直します。</li>
-                    <li>※直近で操作したコートには「NEW」バッジが付き、変化がひと目で分かります。</li>
+                    <li><b>【V66機能】参加者の点滅通知</b>：一般モードで待機中の自分の名前をタップ（青色枠）しておくと、コートに入った瞬間に自分の名前が10秒間点滅してお知らせします。</li>
                 </ul>
 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">4. 修正機能</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li><b>戻る (↩)</b>：直前の操作を1つ取り消します。</li>
-                    <li><b>入替 (🔄)</b>：間違えてコートに入ってしまった場合など、指定した2名の場所（コート⇄待機列など）とプレイ回数を自動で入れ替えます。</li>
+                    <li><b>入替 (🔄)</b>：間違えてコートに入ってしまった場合など、指定した2名の場所とプレイ回数を自動で入れ替えます。</li>
                 </ul>
 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">5. 練習の終了と保守</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li>受付タブの「練習を終了する」で本日の回数・最終チームが履歴に保存され、全員がリセットされます。</li>
-                    <li>「保守」タブで、コート数変更や運用モード（合同/分割）の切り替え、CSVの入出力が行えます。</li>
+                    <li>「保守」タブで、コート数変更や運用モードの切り替え、CSVの入出力が行えます。</li>
                 </ul>
             </div>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeManualModal()">閉じる</button>
@@ -490,9 +514,23 @@
         }
         
         let isAdmin = sessionStorage.getItem('badmin_auth_' + groupId) === allowedGroups[groupId];
+        // ★V66: 一般参加者の「フォロー（通知ON）」対象をローカルに記憶
+        let followedIds = []; 
         
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
+        // ★V66: 音声読み上げ関数（監督のみ実行）
+        function speakCall(text) {
+            if (!isAdmin) return;
+            if ('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'ja-JP';
+                msg.rate = 1.0;
+                msg.pitch = 1.0;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -615,13 +653,33 @@
             }
         }
 
+        // ★V66: 一般参加者用のフォロー（通知）切り替え機能
+        function toggleFollow(id) {
+            if (isAdmin) return;
+            id = Number(id);
+            if (followedIds.includes(id)) {
+                followedIds = followedIds.filter(x => x !== id);
+            } else {
+                followedIds.push(id);
+            }
+            localStorage.setItem('badmin_followed_players_' + groupId, JSON.stringify(followedIds));
+            render();
+        }
+
         window.onload = function() {
+            // ローカルからフォロー情報を読み込み
+            followedIds = JSON.parse(localStorage.getItem('badmin_followed_players_' + groupId)) || [];
+
             if (isAdmin) {
                 document.body.classList.add('admin-mode');
                 document.body.classList.remove('viewer-mode');
             } else {
                 document.body.classList.remove('admin-mode');
                 document.body.classList.add('viewer-mode');
+                let navRoster = document.querySelector('.nav-item[data-target="roster"]');
+                let navMaintenance = document.querySelector('.nav-item[data-target="maintenance"]');
+                if (navRoster) navRoster.remove();
+                if (navMaintenance) navMaintenance.remove();
             }
             
             initRouter();
@@ -644,7 +702,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v65_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v66_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let isInitialLoad = true;
@@ -779,9 +837,23 @@
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
             let colorStr = p.rank === 'A' ? '#9F1239' : '#111827';
-            return `<span style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
+            return `<span class="inner-name" style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
         }
         
+        // ★V66: コート内のプレイヤー表示用関数（点滅等のスタイル処理を一元化）
+        function getPlayerHtml(pObj, isHighlight) {
+            if (!pObj) return "";
+            let isFollowed = !isAdmin && followedIds.includes(Number(pObj.id));
+            let nameText = getPlayerDisplayName(pObj);
+            let fontSize = getDynamicFontSize(nameText);
+            
+            let baseClass = "player-name";
+            if (isFollowed) baseClass += " player-followed";
+            if (isFollowed && isHighlight) baseClass += " blink-animation";
+            
+            return `<div class="${baseClass}" style="${fontSize}">${formatNameHTML(pObj)}</div>`;
+        }
+
         function getDynamicFontSize(text) {
             if (!text) return "";
             let len = text.length;
@@ -810,9 +882,6 @@
             saveToCloud();
         }
 
-        // ==========================================
-        // 入替（テレコ）機能・マニュアル呼び出し機能
-        // ==========================================
         function openSwapModal() {
             if (!isAdmin) return;
             
@@ -836,7 +905,6 @@
             document.getElementById('swapModal').style.display = 'none';
         }
         
-        // ★V65: マニュアルモーダル開閉
         function closeManualModal(e) {
             if(e && e.target !== document.getElementById('manualModal')) return;
             document.getElementById('manualModal').style.display = 'none';
@@ -954,6 +1022,28 @@
             }
             manualSelectedIds = [];
             saveToCloud();
+        }
+
+        function confirmResetAll() {
+            if (!isAdmin) return;
+            let input = prompt("【警告】名簿・履歴を含む全データを初期化します。\n本当に削除する場合は「削除」と入力してください。");
+            if (input === "削除") {
+                db = { 
+                    mode: 'combined',
+                    maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
+                    courtsCombined: cleanCourts([], 6),
+                    courtsA: cleanCourts([], 3),
+                    courtsB: cleanCourts([], 3),
+                    queueCombined: [], queueA: [], queueB: [],
+                    players: [], dailyCounter: 1, history: {} 
+                };
+                stateHistory = [];
+                manualSelectedIds = [];
+                saveToCloud();
+                alert("初期化が完了しました。");
+            } else if (input !== null) {
+                alert("入力が一致しません。初期化をキャンセルしました。");
+            }
         }
 
         function changeMaxCourts(targetKey, delta) {
@@ -1164,16 +1254,28 @@
             shuffleArray(finalPlayers);
             courts[idx].p = finalPlayers;
 
-            finalPlayers.forEach(id => {
+            // ★V66: 音声コール用の文字列作成
+            let callNumsStr = finalPlayers.map(id => {
                 let p = db.players.find(pl => String(pl.id) === String(id));
                 if (p) {
                     p.status = 'playing'; p.playCount++;
+                    return p.dailyNum ? p.dailyNum + "番" : "";
                 }
-            });
-            
+                return "";
+            }).filter(n => n !== "").join("、");
+
             courts[idx].highlight = true; 
             manualSelectedIds = manualSelectedIds.filter(id => !finalPlayers.includes(id));
             saveToCloud();
+            
+            // ★V66: 自動音声コール実行
+            if (callNumsStr) {
+                let displayCourtId = parseInt(courts[idx].id, 10);
+                if (db.mode === 'split' && currentViewRank === 'B') {
+                    displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
+                }
+                speakCall(`${callNumsStr}、第${displayCourtId}コートに、お入りください。`);
+            }
         }
 
         function fillAllEmptyCourts() {
@@ -1208,21 +1310,36 @@
             
             shuffleArray(playersToAssign);
             
+            let callTexts = []; // ★V66: 音声コールを溜める配列
+
             for (let i = 0; i < courtsToFill; i++) {
                 let cIdx = emptyIdxs[i];
-                courts[cIdx].p = []; 
+                let group = playersToAssign.slice(i * 4, i * 4 + 4);
                 
+                courts[cIdx].p = group;
                 courts[cIdx].highlight = true;
                 
-                let group = playersToAssign.slice(i * 4, i * 4 + 4);
-                group.forEach(id => {
+                let callNumsStr = group.map(id => {
                     let p = db.players.find(pl => String(pl.id) === String(id));
                     if (p) {
-                        p.status = 'playing'; p.playCount++; courts[cIdx].p.push(id);
+                        p.status = 'playing'; p.playCount++;
+                        return p.dailyNum ? p.dailyNum + "番" : "";
                     }
-                });
+                    return "";
+                }).filter(n => n !== "").join("、");
+
+                if (callNumsStr) {
+                    let displayCourtId = parseInt(courts[cIdx].id, 10);
+                    if (db.mode === 'split' && currentViewRank === 'B') {
+                        displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
+                    }
+                    callTexts.push(`${callNumsStr}、第${displayCourtId}コートに、お入りください。`);
+                }
             }
             saveToCloud();
+            
+            // ★V66: 順番に音声コールを実行
+            callTexts.forEach(text => speakCall(text));
         }
 
         function toggleCheck(idx, checked) { 
@@ -1262,6 +1379,7 @@
                 splitIndex += cap;
             });
             saveToCloud();
+            // シャッフル時はコールしない
         }
 
         // ==========================================
@@ -1638,12 +1756,18 @@
                         if (!p) return;
                         let isTop4 = index < 4;
                         let isSelected = isAdmin && manualSelectedIds.includes(id);
-                        let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "");
+                        
+                        // ★V66: 一般参加者用のフォロー状態判定とクリックイベント
+                        let isFollowed = !isAdmin && followedIds.includes(Number(id));
+                        let clickAction = isAdmin ? `onclick="toggleManualSelect(${id})"` : `onclick="toggleFollow(${id})"`;
+                        
+                        let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "") + (isFollowed ? " follow-selected" : "");
                         
                         nextHtml += `
-                            <div class="${slotClass}" ${isAdmin ? `onclick="toggleManualSelect(${id})"` : ""}>
+                            <div class="${slotClass}" ${clickAction}>
                                 <div class="next-slot-name">${formatNameHTML(p)}</div>
                                 <div class="admin-only" style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
+                                ${isFollowed ? '<div style="font-size:0.75rem; color:#0284C7; font-weight:900; margin-top:2px;">🔔 通知ON</div>' : ''}
                             </div>`;
                     });
                 }
@@ -1660,11 +1784,6 @@
                     let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B"}) : null;
                     let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B"}) : null;
                     
-                    let p1Text = p1 ? getPlayerDisplayName(p1) : "";
-                    let p2Text = p2 ? getPlayerDisplayName(p2) : "";
-                    let p3Text = p3 ? getPlayerDisplayName(p3) : "";
-                    let p4Text = p4 ? getPlayerDisplayName(p4) : "";
-
                     let selectedStyle = c.selected && isAdmin ? "selected" : "playing";
 
                     let displayCourtId = parseInt(c.id, 10);
@@ -1682,13 +1801,13 @@
                                 </div>
                                 <div class="match-row">
                                     <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
-                                        <div class="player-name" style="${getDynamicFontSize(p1Text)}">${p1 ? formatNameHTML(p1) : ""}</div>
-                                        <div class="player-name" style="${getDynamicFontSize(p2Text)}">${p2 ? formatNameHTML(p2) : ""}</div>
+                                        ${getPlayerHtml(p1, c.highlight)}
+                                        ${getPlayerHtml(p2, c.highlight)}
                                     </div>
                                     <div class="vs-badge">×</div>
                                     <div class="team-box ${selectedStyle}" style="${isAdmin ? 'cursor:pointer;' : ''}" ${isAdmin ? `onclick="toggleCheck(${idx},${!c.selected})"` : ""}>
-                                        <div class="player-name" style="${getDynamicFontSize(p3Text)}">${p3 ? formatNameHTML(p3) : ""}</div>
-                                        <div class="player-name" style="${getDynamicFontSize(p4Text)}">${p4 ? formatNameHTML(p4) : ""}</div>
+                                        ${getPlayerHtml(p3, c.highlight)}
+                                        ${getPlayerHtml(p4, c.highlight)}
                                     </div>
                                 </div>
                                 <button class="btn-secondary admin-only" style="color:#DC2626; background:#FEE2E2; padding:16px; font-size:1.1rem; width:100%;" onclick="endCourt(${idx})">⏹ OUT</button>
