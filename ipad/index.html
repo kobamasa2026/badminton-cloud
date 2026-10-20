@@ -35,9 +35,22 @@
         body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } 
         body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } 
 
-        /* 一般モード・監督モードの表示完全切り替え */
+        /* ★V74: 一般モード・監督モードの表示完全切り替え & 色の統一 */
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .viewer-only { display: none !important; }
+
+        body.viewer-mode .rank-text-A,
+        body.viewer-mode .rank-text-B { color: #111827 !important; }
+        
+        body.viewer-mode .rank-badge.rank-A,
+        body.viewer-mode .rank-badge.rank-B { 
+            background: #F3F4F6 !important; 
+            color: #111827 !important; 
+            border-color: #D1D5DB !important; 
+        }
+
+        .rank-text-A { color: #9F1239; font-weight: 900; }
+        .rank-text-B { color: #111827; font-weight: 900; }
 
         #loadingOverlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-surface);
@@ -224,10 +237,10 @@
         <div id="resetBtnContainer"></div>
     </div>
 
-    <!-- ログイン・ログアウトボタンを左上に統一 -->
+    <!-- ★V74: ログイン・ログアウトボタンを左上に完全統一 -->
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V73</h1>
+            <h1 class="header-title" style="margin-right:4px;">V74</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -314,7 +327,6 @@
                 <div style="margin-bottom:16px;">
                     <label style="font-size:0.9rem; font-weight:bold; color:var(--text-sub);">運用モード設定</label>
                     <select id="settingMode" class="input-text" style="font-weight:bold;" onchange="changeOperationMode(this.value)">
-                        <!-- ★V73: 表記を「分割しない」に変更 -->
                         <option value="combined">合同（分割しない）</option>
                         <option value="split">チーム別（A/Bで列とコートを分ける）</option>
                     </select>
@@ -329,18 +341,16 @@
                     </div>
                 </div>
 
+                <!-- ★V74: Aチームが使用するコートを個別に指定するUI -->
                 <div id="courtSettingsSplit" style="display:none; flex-direction:column; gap:16px; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:bold; font-size:1.1rem;">Aチーム コート数</span>
-                        <div style="display:flex; align-items:center; gap:16px;">
-                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('A', -1)">ー</button>
-                            <span id="settingCourtCountA" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center;">3</span>
-                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('A', 1)">＋</button>
-                        </div>
+                    <div style="font-weight:bold; font-size:1.1rem; margin-bottom:-8px;">チーム別コート割り当て</div>
+                    <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">各コートをタップしてA・Bチームを切り替えてください。</p>
+                    <div id="courtAssignmentToggles" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <!-- ここにJSで動的にボタンを描画 -->
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; opacity:0.6;">
-                        <span style="font-weight:bold; font-size:1.1rem;">Bチーム コート数 <span style="font-size:0.8rem;">(自動計算)</span></span>
-                        <span id="settingCourtCountB" style="font-size:1.5rem; font-weight:900; width:86px; text-align:center;">3</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; opacity:0.6; margin-top:8px;">
+                        <span style="font-weight:bold; font-size:0.9rem;">Aチーム面数: <span id="settingCourtCountA"></span></span>
+                        <span style="font-weight:bold; font-size:0.9rem;">Bチーム面数: <span id="settingCourtCountB"></span></span>
                     </div>
                 </div>
             </div>
@@ -440,12 +450,12 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V73)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V74)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li>左上の「🔒監督ログイン」からパスワード入力で監督モードになります。終了時は同じ場所の「🔓監督解除」をタップします。</li>
-                    <li>一般参加者のスマホからは操作できず、待機順の「プレイ回数」も見えないようになっています。</li>
+                    <li>一般参加者のスマホからは操作できず、待機順の「プレイ回数」も見えないようになっています。また、色は黒で統一されます。</li>
                 </ul>
                 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. 受付（練習開始）</h3>
@@ -456,7 +466,6 @@
 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 試合の進行と音声コール・通知</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <!-- ★V73: 監督モードからのみ音声読み上げが行われることを明記 -->
                     <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。この時、<strong>監督モードの端末からのみ</strong>、対象者の受付番号とコート番号が自動で音声読み上げされます。</li>
                     <li><b>優先IN</b>：待機列のメンバーをタップ（黄色枠）してからINすると優先的に入ります。</li>
                     <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
@@ -471,9 +480,10 @@
                     <li><b>入替 (🔄)</b>：間違えてコートに入ってしまった場合など、指定した2名の場所とプレイ回数を自動で入れ替えます。</li>
                 </ul>
 
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">5. トラブルシューティング</h3>
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">5. 保守設定</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li>画面が「接続中」で固まった場合、5秒後に表示される「強制リセット」ボタンを押すことで、ブラウザのキャッシュをクリアして自己修復します。</li>
+                    <li><b>分割モードのコート設定</b>：全コート数の中で、どのコートをAチームが使用するかを具体的にタップして指定できます。（指定されなかったコートはBチームになります）</li>
+                    <li>画面が「接続中」で固まった場合、5秒後に表示される「強制リセット」ボタンを押すことで自己修復します。</li>
                 </ul>
             </div>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeManualModal()">閉じる</button>
@@ -525,6 +535,7 @@
             window.speechSynthesis.onvoiceschanged = loadVoices;
         }
 
+        // ★V74: 語尾のマル（。）を抜いて自然なフラットトーンにする
         function speakCall(text) {
             if (!isAdmin) return;
             if ('speechSynthesis' in window) {
@@ -724,11 +735,12 @@
         let db = { 
             mode: 'combined', 
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
+            courtAssignmentsA: [],
             courtsCombined: [], courtsA: [], courtsB: [],
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v73_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v74_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -753,7 +765,18 @@
 
                 db.mode = data.mode || 'combined';
                 db.maxCourtsCombined = parseInt(data.maxCourtsCombined || data.maxCourts || 6, 10);
-                db.maxCourtsA = parseInt(data.maxCourtsA || 3, 10);
+                
+                // ★V74: コートの割り当て（Aチームの使うコート配列）
+                db.courtAssignmentsA = data.courtAssignmentsA || [];
+                let fallbackA = parseInt(data.maxCourtsA || 3, 10);
+                if (db.courtAssignmentsA.length === 0 && fallbackA > 0) {
+                    for(let i=1; i<=fallbackA; i++) db.courtAssignmentsA.push(i);
+                }
+                // 総数を超える設定を安全に除去
+                db.courtAssignmentsA = db.courtAssignmentsA.filter(x => x <= db.maxCourtsCombined);
+                db.courtAssignmentsA.sort((a,b) => a - b);
+                
+                db.maxCourtsA = db.courtAssignmentsA.length;
                 db.maxCourtsB = Math.max(0, db.maxCourtsCombined - db.maxCourtsA);
 
                 db.queueCombined = toNumArray(data.queueCombined !== undefined ? data.queueCombined : data.queue);
@@ -866,8 +889,8 @@
 
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            let colorStr = p.rank === 'A' ? '#9F1239' : '#111827';
-            return `<span class="inner-name" style="color:${colorStr}; font-weight:900;">${numHtml}${p.name}</span>`;
+            // ★V74: cssクラスを使って色を制御する（一般モードでの一律黒色化のため）
+            return `<span class="inner-name rank-text-${p.rank}">${numHtml}${p.name}</span>`;
         }
         
         function getPlayerHtml(pObj, isHighlight) {
@@ -1053,50 +1076,49 @@
             saveToCloud();
         }
 
+        // ★V74: コートの総数を増減する関数（減らした時にAチームの割り当ても安全に消す）
         function changeMaxCourts(targetKey, delta) {
             if (!isAdmin) return;
+            if (db.players.some(p => p.status === 'playing')) {
+                return alert("試合中(IN)のコートがあるため設定を変更できません。\n全員を待機状態(OUT)にしてください。");
+            }
             
             if (targetKey === 'combined') {
                 let n = db.maxCourtsCombined + delta;
                 if (n < 1 || n > 12) return;
                 
-                if (delta < 0) {
-                    if (db.mode === 'combined') {
-                        let c = db.courtsCombined[db.courtsCombined.length - 1];
-                        if (c && c.p && c.p.length > 0) return alert("使用中のコートがあるため減らせません。");
-                    } else {
-                        if (db.maxCourtsB > 0) {
-                            let c = db.courtsB[db.courtsB.length - 1];
-                            if (c && c.p && c.p.length > 0) return alert("Bチームの使用中コートがあるため減らせません。");
-                        } else {
-                            let c = db.courtsA[db.courtsA.length - 1];
-                            if (c && c.p && c.p.length > 0) return alert("Aチームの使用中コートがあるため減らせません。");
-                        }
-                    }
-                }
                 saveStateToHistory();
                 db.maxCourtsCombined = n;
-                if (db.maxCourtsA > n) db.maxCourtsA = n;
                 
-            } else if (targetKey === 'A') {
-                let n = db.maxCourtsA + delta;
-                if (n < 0 || n > db.maxCourtsCombined) return;
+                db.courtAssignmentsA = db.courtAssignmentsA.filter(x => x <= n);
+                db.maxCourtsA = db.courtAssignmentsA.length;
+                db.maxCourtsB = Math.max(0, n - db.maxCourtsA);
                 
-                if (delta < 0) {
-                    let c = db.courtsA[db.courtsA.length - 1];
-                    if (c && c.p && c.p.length > 0) return alert("Aチームの使用中コートがあるため減らせません。");
-                }
-                if (delta > 0) {
-                    let c = db.courtsB[db.courtsB.length - 1];
-                    if (c && c.p && c.p.length > 0) return alert("Bチームの使用中コートがあるためAを増やせません。");
-                }
-                saveStateToHistory();
-                db.maxCourtsA = n;
+                db.courtsCombined = cleanCourts(db.courtsCombined, db.maxCourtsCombined);
+                db.courtsA = cleanCourts(db.courtsA, db.maxCourtsA);
+                db.courtsB = cleanCourts(db.courtsB, db.maxCourtsB);
+                
+                saveToCloud();
+            }
+        }
+        
+        // ★V74: A/Bのコートをタップで指定する関数
+        function toggleCourtAssignment(courtId) {
+            if (!isAdmin) return;
+            if (db.players.some(p => p.status === 'playing')) {
+                return alert("試合中(IN)のコートがあるため設定を変更できません。\n全員を待機状態(OUT)にしてください。");
             }
             
+            saveStateToHistory();
+            if (db.courtAssignmentsA.includes(courtId)) {
+                db.courtAssignmentsA = db.courtAssignmentsA.filter(x => x !== courtId);
+            } else {
+                db.courtAssignmentsA.push(courtId);
+                db.courtAssignmentsA.sort((a,b) => a - b);
+            }
+            db.maxCourtsA = db.courtAssignmentsA.length;
             db.maxCourtsB = Math.max(0, db.maxCourtsCombined - db.maxCourtsA);
             
-            db.courtsCombined = cleanCourts(db.courtsCombined, db.maxCourtsCombined);
             db.courtsA = cleanCourts(db.courtsA, db.maxCourtsA);
             db.courtsB = cleanCourts(db.courtsB, db.maxCourtsB);
             
@@ -1263,6 +1285,18 @@
             render(); 
         }
 
+        // ★V74: 表示用のコート番号を計算するヘルパー関数
+        function getDisplayCourtId(idx) {
+            if (db.mode === 'combined') return idx + 1;
+            if (currentViewRank === 'A') return db.courtAssignmentsA[idx];
+            
+            let assignmentsB = [];
+            for(let i=1; i<=db.maxCourtsCombined; i++) {
+                if (!db.courtAssignmentsA.includes(i)) assignmentsB.push(i);
+            }
+            return assignmentsB[idx];
+        }
+
         function fillCourt(idx) {
             if (!isAdmin) return;
             
@@ -1305,11 +1339,9 @@
             saveToCloud();
             
             if (callNumsStr) {
-                let displayCourtId = parseInt(courts[idx].id, 10);
-                if (db.mode === 'split' && currentViewRank === 'B') {
-                    displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
-                }
-                speakCall(`${callNumsStr}、第${displayCourtId}コートにおはいりください。`);
+                let displayCourtId = getDisplayCourtId(idx);
+                // ★V74: 語尾のマルを抜いて自然な間を作る
+                speakCall(`${callNumsStr}、第${displayCourtId}コートに おはいりください`);
             }
         }
 
@@ -1364,11 +1396,9 @@
                 }).filter(n => n !== "").join("、");
 
                 if (callNumsStr) {
-                    let displayCourtId = parseInt(courts[cIdx].id, 10);
-                    if (db.mode === 'split' && currentViewRank === 'B') {
-                        displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
-                    }
-                    callTexts.push(`${callNumsStr}、第${displayCourtId}コートにおはいりください。`);
+                    let displayCourtId = getDisplayCourtId(cIdx);
+                    // ★V74: 語尾のマルを抜く
+                    callTexts.push(`${callNumsStr}、第${displayCourtId}コートに おはいりください`);
                 }
             }
             saveToCloud();
@@ -1523,13 +1553,12 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
-                let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
-                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
+                        <div class="rank-text-${p.rank}" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
                         <div style="width:56px; text-align:center; flex-shrink:0;">
                             <span class="rank-badge rank-${p.rank}" style="white-space:nowrap;">${rnk}</span>
                         </div>
@@ -1673,8 +1702,24 @@
                     } else {
                         document.getElementById('courtSettingsCombined').style.display = 'none';
                         document.getElementById('courtSettingsSplit').style.display = 'flex';
-                        document.getElementById('settingCourtCountA').innerText = db.maxCourtsA;
-                        document.getElementById('settingCourtCountB').innerText = db.maxCourtsB;
+                        
+                        // ★V74: 指定コートのトグルボタンを描画
+                        let togglesHtml = '';
+                        for(let i=1; i<=db.maxCourtsCombined; i++) {
+                            let isA = db.courtAssignmentsA.includes(i);
+                            let teamLabel = isA ? 'A' : 'B';
+                            let btnColor = isA ? '#FEE2E2' : '#F3F4F6';
+                            let textColor = isA ? '#9F1239' : '#1F2937';
+                            let borderColor = isA ? '#FCA5A5' : '#D1D5DB';
+                            togglesHtml += `<button class="btn-secondary" style="background:${btnColor}; color:${textColor}; border:2px solid ${borderColor}; padding:8px 0; font-size:0.9rem; font-weight:900; width:calc(25% - 6px);" onclick="toggleCourtAssignment(${i})">C${i}: ${teamLabel}</button>`;
+                        }
+                        let togglesContainer = document.getElementById('courtAssignmentToggles');
+                        if(togglesContainer) togglesContainer.innerHTML = togglesHtml;
+
+                        let aCountEl = document.getElementById('settingCourtCountA');
+                        if (aCountEl) aCountEl.innerText = db.maxCourtsA;
+                        let bCountEl = document.getElementById('settingCourtCountB');
+                        if (bCountEl) bCountEl.innerText = db.maxCourtsB;
                     }
 
                     let inactiveHtml = "";
@@ -1846,13 +1891,28 @@
                         courtsHtml += renderCourtCard(c, idx, idx + 1, false);
                     });
                 } else {
+                    // ★V74: コート番号の表示順（1, 2, 3...）に合わせてソートして描画する
+                    let combinedRenderArray = [];
+                    let assignmentsB = [];
+                    for(let i=1; i<=db.maxCourtsCombined; i++) {
+                        if (!db.courtAssignmentsA.includes(i)) assignmentsB.push(i);
+                    }
+                    
                     db.courtsA.forEach((c, idx) => {
-                        let isGreyedOut = (currentViewRank !== 'A');
-                        courtsHtml += renderCourtCard(c, idx, idx + 1, isGreyedOut);
+                        combinedRenderArray.push({
+                            c: c, idx: idx, displayCourtId: db.courtAssignmentsA[idx], isGreyedOut: (currentViewRank !== 'A')
+                        });
                     });
                     db.courtsB.forEach((c, idx) => {
-                        let isGreyedOut = (currentViewRank !== 'B');
-                        courtsHtml += renderCourtCard(c, idx, db.maxCourtsA + idx + 1, isGreyedOut);
+                        combinedRenderArray.push({
+                            c: c, idx: idx, displayCourtId: assignmentsB[idx], isGreyedOut: (currentViewRank !== 'B')
+                        });
+                    });
+                    
+                    combinedRenderArray.sort((a, b) => a.displayCourtId - b.displayCourtId);
+                    
+                    combinedRenderArray.forEach(item => {
+                        courtsHtml += renderCourtCard(item.c, item.idx, item.displayCourtId, item.isGreyedOut);
                     });
                 }
                 
