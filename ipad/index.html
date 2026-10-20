@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード</title>
+    <!-- ★V76: タブやブックマークでバージョンが一目でわかるようにタイトルを変更 -->
+    <title>【V76】バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -132,7 +133,6 @@
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
         .court-title { font-weight: 900; font-size: 1.2rem; } 
         
-        /* 他チームのコートをグレーアウト表示するスタイル */
         .court-card.greyed-out {
             opacity: 0.4;
             pointer-events: none;
@@ -237,10 +237,9 @@
         <div id="resetBtnContainer"></div>
     </div>
 
-    <!-- ログイン・ログアウトボタンを左上に完全統一 -->
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V75</h1>
+            <h1 class="header-title" style="margin-right:4px;">V76</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -388,7 +387,6 @@
     </main>
 
     <nav class="bottom-nav">
-        <!-- メニュー消失を防ぐためDOMは常に維持し、CSSで表示切替 -->
         <button class="nav-item active" data-target="matches">
             <span class="nav-icon">🏸</span><span>試合</span>
         </button>
@@ -449,7 +447,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V75)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V76)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -738,7 +736,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v75_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v76_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -1543,13 +1541,12 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
-                let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
-                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
+                        <div class="rank-text-${p.rank}" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
                         <div style="width:56px; text-align:center; flex-shrink:0;">
                             <span class="rank-badge rank-${p.rank}" style="white-space:nowrap;">${rnk}</span>
                         </div>
@@ -1694,7 +1691,6 @@
                         document.getElementById('courtSettingsCombined').style.display = 'none';
                         document.getElementById('courtSettingsSplit').style.display = 'flex';
                         
-                        // ★V75: Cではなく「コート」と表記し、はみ出さないよう幅を33.33%に変更
                         let togglesHtml = '';
                         for(let i=1; i<=db.maxCourtsCombined; i++) {
                             let isA = db.courtAssignmentsA.includes(i);
@@ -1828,7 +1824,6 @@
                 document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
                 let courtsHtml = "";
-                
                 const renderCourtCard = (c, idx, displayCourtId, isGreyedOut) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return "";
 
