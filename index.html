@@ -1,3 +1,20 @@
+ブラウザの自動音声は、文字をそのまま一気に読ませようとすると、どうしても「ロボットのようなのっぺりとしたイントネーション」になってしまいますね。
+
+より人間らしい自然なアナウンス（駅や病院の呼び出しのような自然な「間」と「抑揚」）に近づけるため、音声エンジンに対する「言葉と言葉の間の取り方（句読点と空白の調整）」と「話すスピードの最適化」を行った「V69」を作成いたしました。
+
+🛠 V69での音声チューニングのポイント
+「間（ブレス）」の意図的な挿入
+これまで「1番、2番、第1コートに、おはいりください」と一息で読ませていたものを、「1番、 2番。 第1コートに、 おはいりください。」と、内部的に「空白」と「マル（。）」を細かく挟むように書き換えました。これにより、AIが自然な息継ぎと抑揚をつけるようになります。
+
+アナウンス速度の微調整
+少しだけ話すスピードを落とし（0.92倍速）、落ち着いたトーンでコールするように調整しました。
+
+連続コールの混線防止
+間違ってボタンを2回押してしまった時などに、声が重なって「カエルの合唱」状態にならないよう、新しいコールをする前に前の声を瞬時にキャンセルする仕組みを追加しました。
+
+以下のコードを index.html に上書き保存し、PC/iPadで Shift + F5（再読み込み）して、実際の音声をご確認ください！
+
+HTML
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -218,7 +235,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V68</h1>
+            <h1 class="header-title">V69</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -435,7 +452,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V68)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V69)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -512,7 +529,7 @@
         
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
-        // ★V68: 音声エンジンをより滑らかにチューニングし、高音質の声を優先して探す
+        // ★V69: 音声エンジンのチューニング（間と抑揚を強制する）
         let availableVoices = [];
         if ('speechSynthesis' in window) {
             let loadVoices = () => { availableVoices = window.speechSynthesis.getVoices(); };
@@ -523,15 +540,17 @@
         function speakCall(text) {
             if (!isAdmin) return;
             if ('speechSynthesis' in window) {
+                // 連続で押された時に声が重ならないよう、前の声をキャンセル
+                window.speechSynthesis.cancel();
+                
                 const msg = new SpeechSynthesisUtterance(text);
                 msg.lang = 'ja-JP';
-                msg.rate = 0.95; // ★V68: たどたどしさを軽減するため少しだけゆっくり話す
+                msg.rate = 0.92; // ゆっくりめで落ち着いたアナウンスに
                 msg.pitch = 1.0;
                 
                 if (availableVoices.length > 0) {
                     let jaVoices = availableVoices.filter(v => v.lang.includes('ja'));
-                    // 高品質な音声エンジン（Siri, Google, プレミアム音声など）を優先して使う
-                    let bestVoice = jaVoices.find(v => v.name.includes('Google') || v.name.includes('Siri') || v.name.includes('Kyoko') || v.name.includes('Premium'));
+                    let bestVoice = jaVoices.find(v => v.name.includes('Google') || v.name.includes('Siri') || v.name.includes('Kyoko') || v.name.includes('Premium') || v.name.includes('O-ren'));
                     if (bestVoice) msg.voice = bestVoice;
                     else if (jaVoices.length > 0) msg.voice = jaVoices[0];
                 }
@@ -726,7 +745,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v68_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v69_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -1259,7 +1278,7 @@
             shuffleArray(finalPlayers);
             courts[idx].p = finalPlayers;
 
-            // ★V68: ひらがなで読ませる
+            // ★V69: 読み上げ時に「空白」と「マル（。）」を入れて人間らしい間を作る
             let callNumsStr = finalPlayers.map(id => {
                 let p = db.players.find(pl => String(pl.id) === String(id));
                 if (p) {
@@ -1267,7 +1286,7 @@
                     return p.dailyNum ? p.dailyNum + "番" : "";
                 }
                 return "";
-            }).filter(n => n !== "").join("、");
+            }).filter(n => n !== "").join("、 "); // カンマの後に空白を入れて間をとる
 
             courts[idx].highlight = true; 
             manualSelectedIds = manualSelectedIds.filter(id => !finalPlayers.includes(id));
@@ -1278,7 +1297,8 @@
                 if (db.mode === 'split' && currentViewRank === 'B') {
                     displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
                 }
-                speakCall(`${callNumsStr}、第${displayCourtId}コートに、おはいりください。`);
+                // 文章を「。」で区切り、少し空白を空けることで自然な息継ぎを強制する
+                speakCall(`${callNumsStr}。 第${displayCourtId}コートに、 おはいりください。`);
             }
         }
 
@@ -1323,6 +1343,7 @@
                 courts[cIdx].p = group;
                 courts[cIdx].highlight = true;
                 
+                // ★V69: 空白を入れて間をとる
                 let callNumsStr = group.map(id => {
                     let p = db.players.find(pl => String(pl.id) === String(id));
                     if (p) {
@@ -1330,15 +1351,15 @@
                         return p.dailyNum ? p.dailyNum + "番" : "";
                     }
                     return "";
-                }).filter(n => n !== "").join("、");
+                }).filter(n => n !== "").join("、 ");
 
                 if (callNumsStr) {
                     let displayCourtId = parseInt(courts[cIdx].id, 10);
                     if (db.mode === 'split' && currentViewRank === 'B') {
                         displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
                     }
-                    // ★V68: ひらがなで読ませる
-                    callTexts.push(`${callNumsStr}、第${displayCourtId}コートに、おはいりください。`);
+                    // ★V69: マルで文章を区切って自然な抑揚にする
+                    callTexts.push(`${callNumsStr}。 第${displayCourtId}コートに、 おはいりください。`);
                 }
             }
             saveToCloud();
