@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>【V77】バドミントン組み合わせボード</title>
+    <title>【V78】バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -237,7 +237,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V77</h1>
+            <h1 class="header-title" style="margin-right:4px;">V78</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -255,7 +255,6 @@
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;"></div>
                     
-                    <!-- ★V77: 自動進行モード切り替えボタン -->
                     <div id="autoModeContainer" class="admin-only" style="display:none; justify-content:center; width:100%;">
                         <button id="btnAutoModeToggle" class="btn-secondary" style="font-weight:900; width:100%; border:2px solid var(--border); font-size:1.1rem; padding:12px;" onclick="toggleAutoMode()">
                             🤖 自動進行: OFF
@@ -345,7 +344,6 @@
                             <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('combined', 1)">＋</button>
                         </div>
                     </div>
-                    <!-- ★V77: 自動IN プール面数設定（合同） -->
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
                         <div>
                             <span style="font-weight:bold; font-size:1.1rem;">自動IN プール面数</span><br>
@@ -368,7 +366,6 @@
                         <span style="font-weight:bold; font-size:0.9rem;">Bチーム面数: <span id="settingCourtCountB"></span></span>
                     </div>
                     
-                    <!-- ★V77: 自動IN プール面数設定（分割） -->
                     <hr style="border:none; border-top:1px dashed var(--border); margin:8px 0;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:bold; font-size:1.1rem;">Aチーム 自動プール</span>
@@ -483,7 +480,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V77)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V78)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -495,7 +492,8 @@
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li>「保守」画面で「自動IN (プール面数)」を1以上に設定すると、試合画面に「🤖 自動進行」スイッチが出現します。</li>
                     <li>ONにすると、指定した面数がOUTで空いた瞬間に、自動でシャッフルとINが行われ音声コールが鳴ります。</li>
-                    <li><b>※安全装置：</b>自動進行ONの間は、不整合を防ぐため手動でのINや入れ替え機能はグレーアウトしロックされます。</li>
+                    <li><b>【V78安全装置】</b>「プール面数×4人」の参加者が揃っていない場合はONにできません。また稼働中に休憩等で人数が不足した場合、システムが自動でOFFにして警告アラートを出します。</li>
+                    <li>自動進行ONの間は、手動でのINや入れ替え機能はグレーアウトしロックされます。</li>
                 </ul>
                 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 手動での試合進行と通知</h3>
@@ -760,13 +758,13 @@
             mode: 'combined', 
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
             courtAssignmentsA: [],
-            autoPoolCombined: 0, autoPoolA: 0, autoPoolB: 0, // ★V77: 自動IN プール設定
-            autoModeCombined: false, autoModeA: false, autoModeB: false, // ★V77: 自動進行ON/OFF状態
+            autoPoolCombined: 0, autoPoolA: 0, autoPoolB: 0,
+            autoModeCombined: false, autoModeA: false, autoModeB: false,
             courtsCombined: [], courtsA: [], courtsB: [],
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v77_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v78_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -803,7 +801,6 @@
                 db.maxCourtsA = db.courtAssignmentsA.length;
                 db.maxCourtsB = Math.max(0, db.maxCourtsCombined - db.maxCourtsA);
 
-                // ★V77: 自動IN設定データの読み込み
                 db.autoPoolCombined = Math.min(parseInt(data.autoPoolCombined || 0, 10), db.maxCourtsCombined);
                 db.autoPoolA = Math.min(parseInt(data.autoPoolA || 0, 10), db.maxCourtsA);
                 db.autoPoolB = Math.min(parseInt(data.autoPoolB || 0, 10), db.maxCourtsB);
@@ -957,7 +954,6 @@
             return assignmentsB[idx];
         }
 
-        // ★V77: 自動進行エンジン（指定されたグループのプール条件を満たせばINを実行してコール文字列を返す）
         function runAutoInIfNeeded(groupRank) {
             let pool = groupRank === 'combined' ? db.autoPoolCombined : (groupRank === 'A' ? db.autoPoolA : db.autoPoolB);
             let isAuto = groupRank === 'combined' ? db.autoModeCombined : (groupRank === 'A' ? db.autoModeA : db.autoModeB);
@@ -973,14 +969,11 @@
             let filledCount = 0;
             let callTexts = [];
             
-            // プール数分の空きと、プール数×4人の待機者がいる限り繰り返す
             while (emptyIdxs.length >= pool && queue.length >= pool * 4) {
                 let batchCourts = emptyIdxs.splice(0, pool);
                 let batchPlayers = queue.splice(0, pool * 4);
                 
                 shuffleArray(batchPlayers);
-                
-                // そのグループのコートのハイライトを一度消す
                 courts.forEach(c => c.highlight = false);
                 
                 for (let i = 0; i < pool; i++) {
@@ -1011,19 +1004,64 @@
             return null;
         }
 
-        // ★V77: すべての稼働中のグループで自動進行を評価し、コール配列を返す
+        // ★V78: 全体の参加人数を監視し、プール面数×4人に満たない場合は自動OFFにする安全措置
         function evaluateAutoModes() {
             let calls = [];
-            if (db.mode === 'combined') {
-                let res = runAutoInIfNeeded('combined');
-                if (res) calls.push(res);
-            } else {
-                let resA = runAutoInIfNeeded('A');
-                if (resA) calls.push(resA);
-                let resB = runAutoInIfNeeded('B');
-                if (resB) calls.push(resB);
+            let alerts = [];
+            
+            let ranksToEval = db.mode === 'combined' ? ['combined'] : ['A', 'B'];
+            
+            ranksToEval.forEach(groupRank => {
+                let pool = groupRank === 'combined' ? db.autoPoolCombined : (groupRank === 'A' ? db.autoPoolA : db.autoPoolB);
+                let isAuto = groupRank === 'combined' ? db.autoModeCombined : (groupRank === 'A' ? db.autoModeA : db.autoModeB);
+                
+                if (isAuto && pool > 0) {
+                    let activeCount = db.players.filter(p => p.status !== 'inactive' && (db.mode === 'combined' || p.team === groupRank)).length;
+                    
+                    // 参加人数（試合中＋待機中）の合計が、発動に必要な最小人数に満たない場合
+                    if (activeCount < pool * 4) {
+                        if (groupRank === 'combined') db.autoModeCombined = false;
+                        else if (groupRank === 'A') db.autoModeA = false;
+                        else db.autoModeB = false;
+                        
+                        let tName = groupRank === 'combined' ? '全体' : groupRank + 'チーム';
+                        alerts.push(`【自動進行OFF】\n${tName}の参加人数が${pool*4}名未満（現在${activeCount}名）となったため、自動進行を強制OFFにしました。`);
+                    } else {
+                        let res = runAutoInIfNeeded(groupRank);
+                        if (res) calls.push(res);
+                    }
+                }
+            });
+            
+            return { calls, alerts };
+        }
+
+        function toggleAutoMode() {
+            if (!isAdmin) return;
+            let groupRank = db.mode === 'combined' ? 'combined' : currentViewRank;
+            let modeKey = groupRank === 'combined' ? 'autoModeCombined' : (groupRank === 'A' ? 'autoModeA' : 'autoModeB');
+            let poolKey = groupRank === 'combined' ? 'autoPoolCombined' : (groupRank === 'A' ? 'autoPoolA' : 'autoPoolB');
+            
+            // ★V78: ONにする前の事前チェック
+            if (!db[modeKey]) {
+                let pool = db[poolKey];
+                let activeCount = db.players.filter(p => p.status !== 'inactive' && (db.mode === 'combined' || p.team === groupRank)).length;
+                if (activeCount < pool * 4) {
+                    return alert(`【ONにできません】\n参加人数が${pool*4}名未満（現在${activeCount}名）のため、プール面数${pool}での自動進行はできません。`);
+                }
             }
-            return calls;
+            
+            db[modeKey] = !db[modeKey];
+            manualSelectedIds = []; 
+            
+            if (db[modeKey]) {
+                let evalRes = evaluateAutoModes();
+                saveToCloud();
+                evalRes.calls.forEach(c => speakCall(c));
+                if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+            } else {
+                saveToCloud();
+            }
         }
 
         function toggleTeam(id) {
@@ -1043,28 +1081,10 @@
                 else db.queueB.push(id);
             }
             
-            // チーム移動によって人数が揃い、自動発火する可能性があるためチェック
-            let calls = evaluateAutoModes();
+            let evalRes = evaluateAutoModes();
             saveToCloud();
-            calls.forEach(c => speakCall(c));
-        }
-
-        function toggleAutoMode() {
-            if (!isAdmin) return;
-            let groupRank = db.mode === 'combined' ? 'combined' : currentViewRank;
-            let modeKey = groupRank === 'combined' ? 'autoModeCombined' : (groupRank === 'A' ? 'autoModeA' : 'autoModeB');
-            
-            db[modeKey] = !db[modeKey];
-            manualSelectedIds = []; // 手動の優先選択を解除
-            
-            if (db[modeKey]) {
-                // ONにした瞬間に条件を満たしていれば即発火する
-                let calls = evaluateAutoModes();
-                saveToCloud();
-                calls.forEach(c => speakCall(c));
-            } else {
-                saveToCloud();
-            }
+            evalRes.calls.forEach(c => speakCall(c));
+            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function openSwapModal() {
@@ -1237,7 +1257,6 @@
                 if(db.autoPoolCombined === 0) db.autoModeCombined = false;
                 
             } else if (targetKey === 'A') {
-                // A単独では増減させず、下の toggleCourtAssignment で面数を決定するUIにしているため今回はスキップ
                 return;
             }
             
@@ -1324,6 +1343,7 @@
             if (db.players.some(p => p.name === name)) return alert("既に登録されています。");
             
             let maxId = db.players.reduce((max, p) => Math.max(max, p.id), 0);
+            
             saveStateToHistory();
             db.players.push({ id: maxId + 1, name: name, rank: rank, status: 'inactive', playCount: 0, dailyNum: null });
             input.value = "";
@@ -1346,9 +1366,10 @@
             else if (player.team === 'A') db.queueA.push(id);
             else db.queueB.push(id);
             
-            let calls = evaluateAutoModes();
+            let evalRes = evaluateAutoModes();
             saveToCloud();
-            calls.forEach(c => speakCall(c));
+            evalRes.calls.forEach(c => speakCall(c));
+            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function openPlayerMenu(id) {
@@ -1402,9 +1423,10 @@
             }
             document.getElementById('statusModal').style.display = 'none';
             
-            let calls = evaluateAutoModes();
+            let evalRes = evaluateAutoModes();
             saveToCloud();
-            calls.forEach(c => speakCall(c));
+            evalRes.calls.forEach(c => speakCall(c));
+            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function endCourt(idx) {
@@ -1427,10 +1449,10 @@
             });
             court.p = []; court.selected = false; court.highlight = false;
             
-            // ★V77: OUT直後に自動進行を評価する
-            let calls = evaluateAutoModes();
+            let evalRes = evaluateAutoModes();
             saveToCloud();
-            calls.forEach(c => speakCall(c));
+            evalRes.calls.forEach(c => speakCall(c));
+            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function toggleManualSelect(id) {
@@ -1442,17 +1464,6 @@
                 else alert("優先INは最大4名までです。");
             }
             render(); 
-        }
-
-        function getDisplayCourtId(idx) {
-            if (db.mode === 'combined') return idx + 1;
-            if (currentViewRank === 'A') return db.courtAssignmentsA[idx];
-            
-            let assignmentsB = [];
-            for(let i=1; i<=db.maxCourtsCombined; i++) {
-                if (!db.courtAssignmentsA.includes(i)) assignmentsB.push(i);
-            }
-            return assignmentsB[idx];
         }
 
         function fillCourt(idx) {
@@ -1755,8 +1766,9 @@
             if(!isAdmin) return;
             let p = db.players.find(x => String(x.id) === String(id));
             if(!p) return;
-            if(p.status !== 'inactive') return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩」させてください。");
-            
+            if(p.status !== 'inactive') {
+                return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩」させてください。");
+            }
             if(confirm(`「${p.name}」さんを名簿から完全に削除しますか？`)) {
                 saveStateToHistory();
                 db.players = db.players.filter(x => String(x.id) !== String(id));
@@ -1841,7 +1853,6 @@
                 let currentAutoPool = db.mode === 'combined' ? db.autoPoolCombined : (currentViewRank === 'A' ? db.autoPoolA : db.autoPoolB);
 
                 if (isAdmin) {
-                    // 保守タブの描画
                     document.getElementById('settingMode').value = db.mode;
                     if (db.mode === 'combined') {
                         document.getElementById('courtSettingsCombined').style.display = 'flex';
@@ -1873,14 +1884,12 @@
                         document.getElementById('settingAutoPoolB').innerText = db.autoPoolB;
                     }
 
-                    // 試合中の戻る・入替ボタンのロック管理
                     if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0 || currentAutoMode; 
                     if(document.getElementById('btnSwap')) {
                         document.getElementById('btnSwap').disabled = currentAutoMode;
                         document.getElementById('btnSwap').style.opacity = currentAutoMode ? '0.4' : '1';
                     }
 
-                    // 受付画面の描画
                     let inactiveHtml = "";
                     let presentHtml = "";
                     let presentCount = 0;
@@ -1896,7 +1905,6 @@
                         let dotHtml = p.status === 'playing' ? '<div class="status-dot dot-playing"></div>' : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                         
                         let tmStr = p.team === 'A' ? 'Aチーム' : 'Bチーム';
-                        // ★V77: 自動進行ONの時はチーム移動もロック
                         let teamAction = currentAutoMode ? '' : `onclick="event.stopPropagation(); toggleTeam(${p.id})"`;
                         let teamBtn = `<button class="rank-badge rank-${p.team}" ${teamAction} style="cursor:${currentAutoMode?'not-allowed':'pointer'}; opacity:${currentAutoMode?'0.5':'1'}; width:68px;">${tmStr} 🔄</button>`;
                         
@@ -1967,7 +1975,6 @@
                         </div>`;
                 }
 
-                // ★V77: 自動進行モードボタンの表示
                 let autoModeContainer = document.getElementById('autoModeContainer');
                 if (autoModeContainer) {
                     if (currentAutoPool > 0 && isAdmin) {
@@ -1989,7 +1996,6 @@
                     }
                 }
                 
-                // ★V77: 手動アクションのグレーアウト
                 let actionGrid = document.getElementById('manualActionGrid');
                 if (actionGrid) {
                     if (currentAutoMode) {
@@ -2011,7 +2017,6 @@
                         let isSelected = isAdmin && manualSelectedIds.includes(id);
                         let isFollowed = !isAdmin && followedIds.includes(Number(id));
                         
-                        // ★V77: 自動ONの時は優先クリックも無効
                         let clickAction = (isAdmin && !currentAutoMode) ? `onclick="toggleManualSelect(${id})"` : (!isAdmin ? `onclick="toggleFollow(${id})"` : "");
                         
                         let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "") + (isFollowed ? " follow-selected" : "");
