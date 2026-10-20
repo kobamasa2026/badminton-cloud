@@ -35,7 +35,7 @@
         body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } 
         body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } 
 
-        /* ★V74: 一般モード・監督モードの表示完全切り替え & 色の統一 */
+        /* 一般モード・監督モードの表示完全切り替え & 色の統一 */
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .viewer-only { display: none !important; }
 
@@ -237,10 +237,10 @@
         <div id="resetBtnContainer"></div>
     </div>
 
-    <!-- ★V74: ログイン・ログアウトボタンを左上に完全統一 -->
+    <!-- ログイン・ログアウトボタンを左上に完全統一 -->
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V74</h1>
+            <h1 class="header-title" style="margin-right:4px;">V75</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -341,7 +341,6 @@
                     </div>
                 </div>
 
-                <!-- ★V74: Aチームが使用するコートを個別に指定するUI -->
                 <div id="courtSettingsSplit" style="display:none; flex-direction:column; gap:16px; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
                     <div style="font-weight:bold; font-size:1.1rem; margin-bottom:-8px;">チーム別コート割り当て</div>
                     <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">各コートをタップしてA・Bチームを切り替えてください。</p>
@@ -450,7 +449,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V74)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V75)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -535,7 +534,6 @@
             window.speechSynthesis.onvoiceschanged = loadVoices;
         }
 
-        // ★V74: 語尾のマル（。）を抜いて自然なフラットトーンにする
         function speakCall(text) {
             if (!isAdmin) return;
             if ('speechSynthesis' in window) {
@@ -740,7 +738,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v74_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v75_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -766,13 +764,11 @@
                 db.mode = data.mode || 'combined';
                 db.maxCourtsCombined = parseInt(data.maxCourtsCombined || data.maxCourts || 6, 10);
                 
-                // ★V74: コートの割り当て（Aチームの使うコート配列）
                 db.courtAssignmentsA = data.courtAssignmentsA || [];
                 let fallbackA = parseInt(data.maxCourtsA || 3, 10);
                 if (db.courtAssignmentsA.length === 0 && fallbackA > 0) {
                     for(let i=1; i<=fallbackA; i++) db.courtAssignmentsA.push(i);
                 }
-                // 総数を超える設定を安全に除去
                 db.courtAssignmentsA = db.courtAssignmentsA.filter(x => x <= db.maxCourtsCombined);
                 db.courtAssignmentsA.sort((a,b) => a - b);
                 
@@ -889,7 +885,6 @@
 
         function formatNameHTML(p) { 
             let numHtml = p.dailyNum ? `<span style="color:var(--primary); font-size:1.2em; font-weight:900; margin-right:4px;">${p.dailyNum}</span>` : "";
-            // ★V74: cssクラスを使って色を制御する（一般モードでの一律黒色化のため）
             return `<span class="inner-name rank-text-${p.rank}">${numHtml}${p.name}</span>`;
         }
         
@@ -1076,7 +1071,6 @@
             saveToCloud();
         }
 
-        // ★V74: コートの総数を増減する関数（減らした時にAチームの割り当ても安全に消す）
         function changeMaxCourts(targetKey, delta) {
             if (!isAdmin) return;
             if (db.players.some(p => p.status === 'playing')) {
@@ -1102,7 +1096,6 @@
             }
         }
         
-        // ★V74: A/Bのコートをタップで指定する関数
         function toggleCourtAssignment(courtId) {
             if (!isAdmin) return;
             if (db.players.some(p => p.status === 'playing')) {
@@ -1285,7 +1278,6 @@
             render(); 
         }
 
-        // ★V74: 表示用のコート番号を計算するヘルパー関数
         function getDisplayCourtId(idx) {
             if (db.mode === 'combined') return idx + 1;
             if (currentViewRank === 'A') return db.courtAssignmentsA[idx];
@@ -1340,7 +1332,6 @@
             
             if (callNumsStr) {
                 let displayCourtId = getDisplayCourtId(idx);
-                // ★V74: 語尾のマルを抜いて自然な間を作る
                 speakCall(`${callNumsStr}、第${displayCourtId}コートに おはいりください`);
             }
         }
@@ -1397,7 +1388,6 @@
 
                 if (callNumsStr) {
                     let displayCourtId = getDisplayCourtId(cIdx);
-                    // ★V74: 語尾のマルを抜く
                     callTexts.push(`${callNumsStr}、第${displayCourtId}コートに おはいりください`);
                 }
             }
@@ -1553,12 +1543,13 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
+                let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
-                        <div class="rank-text-${p.rank}" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
+                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
                         <div style="width:56px; text-align:center; flex-shrink:0;">
                             <span class="rank-badge rank-${p.rank}" style="white-space:nowrap;">${rnk}</span>
                         </div>
@@ -1703,7 +1694,7 @@
                         document.getElementById('courtSettingsCombined').style.display = 'none';
                         document.getElementById('courtSettingsSplit').style.display = 'flex';
                         
-                        // ★V74: 指定コートのトグルボタンを描画
+                        // ★V75: Cではなく「コート」と表記し、はみ出さないよう幅を33.33%に変更
                         let togglesHtml = '';
                         for(let i=1; i<=db.maxCourtsCombined; i++) {
                             let isA = db.courtAssignmentsA.includes(i);
@@ -1711,7 +1702,7 @@
                             let btnColor = isA ? '#FEE2E2' : '#F3F4F6';
                             let textColor = isA ? '#9F1239' : '#1F2937';
                             let borderColor = isA ? '#FCA5A5' : '#D1D5DB';
-                            togglesHtml += `<button class="btn-secondary" style="background:${btnColor}; color:${textColor}; border:2px solid ${borderColor}; padding:8px 0; font-size:0.9rem; font-weight:900; width:calc(25% - 6px);" onclick="toggleCourtAssignment(${i})">C${i}: ${teamLabel}</button>`;
+                            togglesHtml += `<button class="btn-secondary" style="background:${btnColor}; color:${textColor}; border:2px solid ${borderColor}; padding:8px 0; font-size:0.9rem; font-weight:900; width:calc(33.33% - 6px);" onclick="toggleCourtAssignment(${i})">コート${i}: ${teamLabel}</button>`;
                         }
                         let togglesContainer = document.getElementById('courtAssignmentToggles');
                         if(togglesContainer) togglesContainer.innerHTML = togglesHtml;
@@ -1837,6 +1828,7 @@
                 document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
                 let courtsHtml = "";
+                
                 const renderCourtCard = (c, idx, displayCourtId, isGreyedOut) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return "";
 
@@ -1891,7 +1883,6 @@
                         courtsHtml += renderCourtCard(c, idx, idx + 1, false);
                     });
                 } else {
-                    // ★V74: コート番号の表示順（1, 2, 3...）に合わせてソートして描画する
                     let combinedRenderArray = [];
                     let assignmentsB = [];
                     for(let i=1; i<=db.maxCourtsCombined; i++) {
