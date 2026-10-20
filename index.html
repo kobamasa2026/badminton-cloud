@@ -1,3 +1,19 @@
+データベースの設定で無事に動くようになったとのこと、本当に良かったです！30日のセキュリティロックが原因だったのですね。解決して安心いたしました。
+
+さて、自動音声についての調整です。
+「お入り（おいり）」と読んでしまう誤読の問題と、ロボットのような「たどたどしさ」を改善するため、音声エンジンをチューニングした「V68」を作成いたしました。
+
+🛠 V68での音声改善ポイント
+「おはいりください」への修正
+漢字の誤読を完全に防ぐため、プログラムの内部で直接ひらがなで「おはいりください」と読ませるように修正しました。
+
+高音質（滑らかな）音声の優先選択と速度調整
+ブラウザの音声読み上げは端末ごとの標準機能を使っているため、どうしても機械っぽさが出やすいのですが、「端末に入っている声の中で、最も高品質で自然な声（SiriやGoogleの高音質音声など）を自動で探して優先的に使う」ようにプログラムを書き換えました。
+さらに、少しだけ話すスピードをゆっくり（0.95倍速）にして、「間」を持たせることでたどたどしさを軽減しています。
+
+以下のコードを index.html に上書き保存して、再度お試しください！
+
+HTML
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -213,13 +229,12 @@
     <div id="loadingOverlay">
         <span style="font-size:3rem;">🏸</span>
         <span id="loadingMsg">クラウドへ接続中...</span>
-        <!-- ★V67: エラー回避用のコンテナ -->
         <div id="resetBtnContainer"></div>
     </div>
 
     <header>
         <div style="display:flex; align-items:center; z-index:2;">
-            <h1 class="header-title">V67</h1>
+            <h1 class="header-title">V68</h1>
             <span class="admin-badge admin-only" onclick="adminLogout()" title="ログアウト">監督 (OUT)</span>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
@@ -259,7 +274,6 @@
             <div class="courts-grid" id="courtsArea"></div>
         </div>
 
-        <!-- 受付・保守画面 -->
         <div id="view-roster" class="view admin-only">
             <div class="card">
                 <div class="section-title">参加中 (<span id="activeCount" style="color:var(--primary);">0</span>)</div>
@@ -437,7 +451,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V67)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V68)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -514,13 +528,30 @@
         
         const dbRef = firebase.database().ref('badminCloudData_ipad/' + groupId);
         
+        // ★V68: 音声エンジンをより滑らかにチューニングし、高音質の声を優先して探す
+        let availableVoices = [];
+        if ('speechSynthesis' in window) {
+            let loadVoices = () => { availableVoices = window.speechSynthesis.getVoices(); };
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
         function speakCall(text) {
             if (!isAdmin) return;
             if ('speechSynthesis' in window) {
                 const msg = new SpeechSynthesisUtterance(text);
                 msg.lang = 'ja-JP';
-                msg.rate = 1.0;
+                msg.rate = 0.95; // ★V68: たどたどしさを軽減するため少しだけゆっくり話す
                 msg.pitch = 1.0;
+                
+                if (availableVoices.length > 0) {
+                    let jaVoices = availableVoices.filter(v => v.lang.includes('ja'));
+                    // 高品質な音声エンジン（Siri, Google, プレミアム音声など）を優先して使う
+                    let bestVoice = jaVoices.find(v => v.name.includes('Google') || v.name.includes('Siri') || v.name.includes('Kyoko') || v.name.includes('Premium'));
+                    if (bestVoice) msg.voice = bestVoice;
+                    else if (jaVoices.length > 0) msg.voice = jaVoices[0];
+                }
+                
                 window.speechSynthesis.speak(msg);
             }
         }
@@ -660,7 +691,6 @@
         }
 
         window.onload = function() {
-            // ★V67: 接続エラー時の自己修復システム（5秒タイマー）
             setTimeout(() => {
                 if (isInitialLoad) {
                     document.getElementById('loadingMsg').innerHTML = '通信エラー、またはキャッシュが破損しています。<br>強制リセットを行ってください。';
@@ -712,12 +742,11 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v67_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v68_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
 
-        // ★V67: Firebaseの通信エラー（権限不足など）をキャッチして画面に出す処理を追加
         dbRef.on('value', (snapshot) => {
             try {
                 const data = snapshot.val() || {};
@@ -792,7 +821,6 @@
                 console.error("Firebase Data Read Error:", err);
             }
         }, (error) => {
-            // データベースのアクセス拒否などのエラー処理
             console.error("Firebase Connection Error:", error);
             if (isInitialLoad) {
                 document.getElementById('loadingMsg').innerHTML = 'データベースの接続に失敗しました。<br><span style="font-size:0.8rem; color:#EF4444;">' + error.message + '</span>';
@@ -1247,6 +1275,7 @@
             shuffleArray(finalPlayers);
             courts[idx].p = finalPlayers;
 
+            // ★V68: ひらがなで読ませる
             let callNumsStr = finalPlayers.map(id => {
                 let p = db.players.find(pl => String(pl.id) === String(id));
                 if (p) {
@@ -1265,7 +1294,7 @@
                 if (db.mode === 'split' && currentViewRank === 'B') {
                     displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
                 }
-                speakCall(`${callNumsStr}、第${displayCourtId}コートに、お入りください。`);
+                speakCall(`${callNumsStr}、第${displayCourtId}コートに、おはいりください。`);
             }
         }
 
@@ -1324,7 +1353,8 @@
                     if (db.mode === 'split' && currentViewRank === 'B') {
                         displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
                     }
-                    callTexts.push(`${callNumsStr}、第${displayCourtId}コートに、お入りください。`);
+                    // ★V68: ひらがなで読ませる
+                    callTexts.push(`${callNumsStr}、第${displayCourtId}コートに、おはいりください。`);
                 }
             }
             saveToCloud();
