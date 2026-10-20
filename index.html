@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>バドミントン組み合わせボード</title>
+    <title>【V77】バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -35,7 +35,6 @@
         body.view-matches-active.mode-split-A { background-color: #FEE2E2 !important; } 
         body.view-matches-active.mode-split-B { background-color: #DBEAFE !important; } 
 
-        /* 一般モード・監督モードの表示完全切り替え & 色の統一 */
         body.viewer-mode .admin-only { display: none !important; }
         body.admin-mode .viewer-only { display: none !important; }
 
@@ -132,7 +131,6 @@
         .court-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 12px;}
         .court-title { font-weight: 900; font-size: 1.2rem; } 
         
-        /* 他チームのコートをグレーアウト表示するスタイル */
         .court-card.greyed-out {
             opacity: 0.4;
             pointer-events: none;
@@ -237,17 +235,16 @@
         <div id="resetBtnContainer"></div>
     </div>
 
-    <!-- ログイン・ログアウトボタンを左上に完全統一 -->
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V75</h1>
+            <h1 class="header-title" style="margin-right:4px;">V77</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
         <div class="header-center" id="headerViewName">🏸 試合</div>
         
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <button class="btn-undo admin-only" onclick="openSwapModal()" style="background:#FEF3C7; color:#D97706;"><span>🔄</span> 入替</button>
+            <button id="btnSwap" class="btn-undo admin-only" onclick="openSwapModal()" style="background:#FEF3C7; color:#D97706;"><span>🔄</span> 入替</button>
             <button id="btnUndo" class="btn-undo admin-only" onclick="undoAction()" disabled><span>↩</span> 戻る</button>
         </div>
     </header>
@@ -258,6 +255,13 @@
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;"></div>
                     
+                    <!-- ★V77: 自動進行モード切り替えボタン -->
+                    <div id="autoModeContainer" class="admin-only" style="display:none; justify-content:center; width:100%;">
+                        <button id="btnAutoModeToggle" class="btn-secondary" style="font-weight:900; width:100%; border:2px solid var(--border); font-size:1.1rem; padding:12px;" onclick="toggleAutoMode()">
+                            🤖 自動進行: OFF
+                        </button>
+                    </div>
+
                     <div class="viewer-only" style="font-size:0.85rem; color:#0EA5E9; font-weight:bold; margin-top:4px; text-align:center;">
                         💡 待機中の名前をタップすると、コートに入った時に点滅してお知らせします。
                     </div>
@@ -272,7 +276,7 @@
                 <div class="next-queue-container" id="nextQueueUI"></div>
             </div>
 
-            <div class="action-grid admin-only">
+            <div class="action-grid admin-only" id="manualActionGrid">
                 <button class="btn-primary" style="background:#10B981;" onclick="fillAllEmptyCourts()">⚡ シャッフルIN(一斉)</button>
                 <button class="btn-primary" style="background:#EC4899; color:#FFFFFF;" onclick="reshuffleSelectedCourts()">🔁 シャッフル(選択)</button>
             </div>
@@ -332,24 +336,55 @@
                     </select>
                 </div>
                 
-                <div id="courtSettingsCombined" style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
-                    <span style="font-weight:bold; font-size:1.1rem;">総コート数</span>
-                    <div style="display:flex; align-items:center; gap:16px;">
-                        <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('combined', -1)">ー</button>
-                        <span id="settingCourtCountCombined" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center;">6</span>
-                        <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('combined', 1)">＋</button>
+                <div id="courtSettingsCombined" style="display:flex; flex-direction:column; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; font-size:1.1rem;">総コート数</span>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('combined', -1)">ー</button>
+                            <span id="settingCourtCountCombined" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center;">6</span>
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('combined', 1)">＋</button>
+                        </div>
+                    </div>
+                    <!-- ★V77: 自動IN プール面数設定（合同） -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+                        <div>
+                            <span style="font-weight:bold; font-size:1.1rem;">自動IN プール面数</span><br>
+                            <span style="font-size:0.8rem; color:var(--text-sub);">0にすると手動(OFF)になります</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeAutoPool('combined', -1)">ー</button>
+                            <span id="settingAutoPoolCombined" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center; color:var(--primary);">0</span>
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeAutoPool('combined', 1)">＋</button>
+                        </div>
                     </div>
                 </div>
 
                 <div id="courtSettingsSplit" style="display:none; flex-direction:column; gap:16px; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
                     <div style="font-weight:bold; font-size:1.1rem; margin-bottom:-8px;">チーム別コート割り当て</div>
                     <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">各コートをタップしてA・Bチームを切り替えてください。</p>
-                    <div id="courtAssignmentToggles" style="display:flex; flex-wrap:wrap; gap:8px;">
-                        <!-- ここにJSで動的にボタンを描画 -->
-                    </div>
+                    <div id="courtAssignmentToggles" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                     <div style="display:flex; justify-content:space-between; align-items:center; opacity:0.6; margin-top:8px;">
                         <span style="font-weight:bold; font-size:0.9rem;">Aチーム面数: <span id="settingCourtCountA"></span></span>
                         <span style="font-weight:bold; font-size:0.9rem;">Bチーム面数: <span id="settingCourtCountB"></span></span>
+                    </div>
+                    
+                    <!-- ★V77: 自動IN プール面数設定（分割） -->
+                    <hr style="border:none; border-top:1px dashed var(--border); margin:8px 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; font-size:1.1rem;">Aチーム 自動プール</span>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeAutoPool('A', -1)">ー</button>
+                            <span id="settingAutoPoolA" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center; color:var(--primary);">0</span>
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeAutoPool('A', 1)">＋</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; font-size:1.1rem;">Bチーム 自動プール</span>
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeAutoPool('B', -1)">ー</button>
+                            <span id="settingAutoPoolB" style="font-size:1.5rem; font-weight:900; width:30px; text-align:center; color:var(--primary);">0</span>
+                            <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeAutoPool('B', 1)">＋</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -388,7 +423,6 @@
     </main>
 
     <nav class="bottom-nav">
-        <!-- メニュー消失を防ぐためDOMは常に維持し、CSSで表示切替 -->
         <button class="nav-item active" data-target="matches">
             <span class="nav-icon">🏸</span><span>試合</span>
         </button>
@@ -449,40 +483,32 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V75)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V77)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li>左上の「🔒監督ログイン」からパスワード入力で監督モードになります。終了時は同じ場所の「🔓監督解除」をタップします。</li>
-                    <li>一般参加者のスマホからは操作できず、待機順の「プレイ回数」も見えないようになっています。また、色は黒で統一されます。</li>
-                </ul>
-                
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. 受付（練習開始）</h3>
-                <ul style="padding-left: 20px; margin-top: 0;">
-                    <li>「受付」タブで名簿のメンバーをタップすると待機列に入ります。（上級者は赤文字）</li>
-                    <li>「休憩にする」で一時的に列から外せます。</li>
+                    <li>左上の「🔒監督ログイン」からパスワード入力で監督モードになります。</li>
+                    <li>一般参加者のスマホからは操作できず、待機順の「プレイ回数」も見えないようになっています。</li>
                 </ul>
 
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 試合の進行と音声コール・通知</h3>
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. 自動進行モード (監督の手放し運用)</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。この時、<strong>監督モードの端末からのみ</strong>、対象者の受付番号とコート番号が自動で音声読み上げされます。</li>
-                    <li><b>優先IN</b>：待機列のメンバーをタップ（黄色枠）してからINすると優先的に入ります。</li>
+                    <li>「保守」画面で「自動IN (プール面数)」を1以上に設定すると、試合画面に「🤖 自動進行」スイッチが出現します。</li>
+                    <li>ONにすると、指定した面数がOUTで空いた瞬間に、自動でシャッフルとINが行われ音声コールが鳴ります。</li>
+                    <li><b>※安全装置：</b>自動進行ONの間は、不整合を防ぐため手動でのINや入れ替え機能はグレーアウトしロックされます。</li>
+                </ul>
+                
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 手動での試合進行と通知</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。（監督端末から音声読み上げあり）</li>
                     <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
-                    <li><b>シャッフル</b>：チーム枠をタップ（ピンク色）し「🔁 シャッフル」で選択したコート内だけでペア・対戦相手を組み直します。</li>
                     <li><b>参加者の点滅通知</b>：一般モードで待機中の自分の名前をタップ（青色枠）しておくと、コートに入った瞬間に自分の名前が10秒間点滅してお知らせします。</li>
-                    <li><b>他チームコートのグレーアウト</b>：分割モード中、他チームが使用しているコートはグレーアウト表示され、全体の進行状況が一目で把握できます。</li>
                 </ul>
 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">4. 修正機能</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li><b>戻る (↩)</b>：直前の操作を1つ取り消します。</li>
-                    <li><b>入替 (🔄)</b>：間違えてコートに入ってしまった場合など、指定した2名の場所とプレイ回数を自動で入れ替えます。</li>
-                </ul>
-
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">5. 保守設定</h3>
-                <ul style="padding-left: 20px; margin-top: 0;">
-                    <li><b>分割モードのコート設定</b>：全コート数の中で、どのコートをAチームが使用するかを具体的にタップして指定できます。（指定されなかったコートはBチームになります）</li>
-                    <li>画面が「接続中」で固まった場合、5秒後に表示される「強制リセット」ボタンを押すことで自己修復します。</li>
+                    <li><b>入替 (🔄)</b>：間違えてコートに入った2名の場所とプレイ回数を自動で入れ替えます。</li>
                 </ul>
             </div>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeManualModal()">閉じる</button>
@@ -734,11 +760,13 @@
             mode: 'combined', 
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
             courtAssignmentsA: [],
+            autoPoolCombined: 0, autoPoolA: 0, autoPoolB: 0, // ★V77: 自動IN プール設定
+            autoModeCombined: false, autoModeA: false, autoModeB: false, // ★V77: 自動進行ON/OFF状態
             courtsCombined: [], courtsA: [], courtsB: [],
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v75_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v77_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -774,6 +802,15 @@
                 
                 db.maxCourtsA = db.courtAssignmentsA.length;
                 db.maxCourtsB = Math.max(0, db.maxCourtsCombined - db.maxCourtsA);
+
+                // ★V77: 自動IN設定データの読み込み
+                db.autoPoolCombined = Math.min(parseInt(data.autoPoolCombined || 0, 10), db.maxCourtsCombined);
+                db.autoPoolA = Math.min(parseInt(data.autoPoolA || 0, 10), db.maxCourtsA);
+                db.autoPoolB = Math.min(parseInt(data.autoPoolB || 0, 10), db.maxCourtsB);
+                
+                db.autoModeCombined = !!data.autoModeCombined;
+                db.autoModeA = !!data.autoModeA;
+                db.autoModeB = !!data.autoModeB;
 
                 db.queueCombined = toNumArray(data.queueCombined !== undefined ? data.queueCombined : data.queue);
                 db.queueA = toNumArray(data.queueA);
@@ -910,6 +947,85 @@
             return 'font-size: clamp(0.7rem, 2vw, 1.0rem);';
         }
 
+        function getDisplayCourtIdForGroup(idx, groupRank) {
+            if (groupRank === 'combined') return idx + 1;
+            if (groupRank === 'A') return db.courtAssignmentsA[idx];
+            let assignmentsB = [];
+            for(let i=1; i<=db.maxCourtsCombined; i++) {
+                if (!db.courtAssignmentsA.includes(i)) assignmentsB.push(i);
+            }
+            return assignmentsB[idx];
+        }
+
+        // ★V77: 自動進行エンジン（指定されたグループのプール条件を満たせばINを実行してコール文字列を返す）
+        function runAutoInIfNeeded(groupRank) {
+            let pool = groupRank === 'combined' ? db.autoPoolCombined : (groupRank === 'A' ? db.autoPoolA : db.autoPoolB);
+            let isAuto = groupRank === 'combined' ? db.autoModeCombined : (groupRank === 'A' ? db.autoModeA : db.autoModeB);
+            
+            if (!isAuto || pool <= 0) return null;
+            
+            let courts = groupRank === 'combined' ? db.courtsCombined : (groupRank === 'A' ? db.courtsA : db.courtsB);
+            let queue = groupRank === 'combined' ? db.queueCombined : (groupRank === 'A' ? db.queueA : db.queueB);
+            
+            let emptyIdxs = [];
+            courts.forEach((c, i) => { if (!c.p || c.p.length === 0) emptyIdxs.push(i); });
+            
+            let filledCount = 0;
+            let callTexts = [];
+            
+            // プール数分の空きと、プール数×4人の待機者がいる限り繰り返す
+            while (emptyIdxs.length >= pool && queue.length >= pool * 4) {
+                let batchCourts = emptyIdxs.splice(0, pool);
+                let batchPlayers = queue.splice(0, pool * 4);
+                
+                shuffleArray(batchPlayers);
+                
+                // そのグループのコートのハイライトを一度消す
+                courts.forEach(c => c.highlight = false);
+                
+                for (let i = 0; i < pool; i++) {
+                    let cIdx = batchCourts[i];
+                    let group = batchPlayers.slice(i * 4, i * 4 + 4);
+                    
+                    courts[cIdx].p = group;
+                    courts[cIdx].highlight = true;
+                    
+                    let callNumsStr = group.map(id => {
+                        let p = db.players.find(pl => String(pl.id) === String(id));
+                        if (p) {
+                            p.status = 'playing'; p.playCount++;
+                            return p.dailyNum ? p.dailyNum + "番" : "";
+                        }
+                        return "";
+                    }).filter(n => n !== "").join("、 ");
+                    
+                    if (callNumsStr) {
+                        let displayCourtId = getDisplayCourtIdForGroup(cIdx, groupRank);
+                        callTexts.push(`${callNumsStr}、第${displayCourtId}コートに おはいりください`);
+                    }
+                }
+                filledCount += pool;
+            }
+            
+            if (filledCount > 0) return callTexts.join("。 ");
+            return null;
+        }
+
+        // ★V77: すべての稼働中のグループで自動進行を評価し、コール配列を返す
+        function evaluateAutoModes() {
+            let calls = [];
+            if (db.mode === 'combined') {
+                let res = runAutoInIfNeeded('combined');
+                if (res) calls.push(res);
+            } else {
+                let resA = runAutoInIfNeeded('A');
+                if (resA) calls.push(resA);
+                let resB = runAutoInIfNeeded('B');
+                if (resB) calls.push(resB);
+            }
+            return calls;
+        }
+
         function toggleTeam(id) {
             if(!isAdmin) return;
             let p = db.players.find(x => String(x.id) === String(id));
@@ -926,12 +1042,33 @@
                 if (newTeam === 'A') db.queueA.push(id);
                 else db.queueB.push(id);
             }
+            
+            // チーム移動によって人数が揃い、自動発火する可能性があるためチェック
+            let calls = evaluateAutoModes();
             saveToCloud();
+            calls.forEach(c => speakCall(c));
+        }
+
+        function toggleAutoMode() {
+            if (!isAdmin) return;
+            let groupRank = db.mode === 'combined' ? 'combined' : currentViewRank;
+            let modeKey = groupRank === 'combined' ? 'autoModeCombined' : (groupRank === 'A' ? 'autoModeA' : 'autoModeB');
+            
+            db[modeKey] = !db[modeKey];
+            manualSelectedIds = []; // 手動の優先選択を解除
+            
+            if (db[modeKey]) {
+                // ONにした瞬間に条件を満たしていれば即発火する
+                let calls = evaluateAutoModes();
+                saveToCloud();
+                calls.forEach(c => speakCall(c));
+            } else {
+                saveToCloud();
+            }
         }
 
         function openSwapModal() {
             if (!isAdmin) return;
-            
             let presentPlayers = db.players.filter(p => p.status !== 'inactive');
             presentPlayers.sort((a, b) => (a.dailyNum || 0) - (b.dailyNum || 0));
             
@@ -960,7 +1097,6 @@
         function findPlayerLocation(id) {
             id = Number(id);
             let loc = null;
-            
             [db.courtsCombined, db.courtsA, db.courtsB].forEach(courts => {
                 courts.forEach((c, cIdx) => {
                     let pIdx = c.p.indexOf(id);
@@ -990,14 +1126,8 @@
             let p1Id = document.getElementById('swapPlayer1').value;
             let p2Id = document.getElementById('swapPlayer2').value;
 
-            if(!p1Id || !p2Id) {
-                alert("入れ替える2名を選択してください。");
-                return;
-            }
-            if(p1Id === p2Id) {
-                alert("異なる2名を選択してください。");
-                return;
-            }
+            if(!p1Id || !p2Id) return alert("入れ替える2名を選択してください。");
+            if(p1Id === p2Id) return alert("異なる2名を選択してください。");
 
             saveStateToHistory();
 
@@ -1005,9 +1135,8 @@
             let loc2 = findPlayerLocation(p2Id);
 
             if(!loc1 || !loc2) {
-                alert("選手の現在の場所が特定できませんでした。参加受付済みのメンバーを選択してください。");
-                stateHistory.pop(); 
-                return;
+                alert("選手の現在の場所が特定できませんでした。");
+                stateHistory.pop(); return;
             }
 
             setPlayerAtLocation(loc1, p2Id);
@@ -1071,6 +1200,23 @@
             saveToCloud();
         }
 
+        function changeAutoPool(targetKey, delta) {
+            if (!isAdmin) return;
+            let valKey = 'autoPool' + (targetKey.charAt(0).toUpperCase() + targetKey.slice(1));
+            let maxKey = 'maxCourts' + (targetKey.charAt(0).toUpperCase() + targetKey.slice(1));
+            let current = db[valKey] || 0;
+            let n = current + delta;
+            
+            if (n >= 0 && n <= db[maxKey]) {
+                db[valKey] = n;
+                if (n === 0) {
+                    let modeKey = 'autoMode' + (targetKey.charAt(0).toUpperCase() + targetKey.slice(1));
+                    db[modeKey] = false;
+                }
+                saveToCloud();
+            }
+        }
+
         function changeMaxCourts(targetKey, delta) {
             if (!isAdmin) return;
             if (db.players.some(p => p.status === 'playing')) {
@@ -1083,17 +1229,22 @@
                 
                 saveStateToHistory();
                 db.maxCourtsCombined = n;
-                
                 db.courtAssignmentsA = db.courtAssignmentsA.filter(x => x <= n);
                 db.maxCourtsA = db.courtAssignmentsA.length;
                 db.maxCourtsB = Math.max(0, n - db.maxCourtsA);
                 
-                db.courtsCombined = cleanCourts(db.courtsCombined, db.maxCourtsCombined);
-                db.courtsA = cleanCourts(db.courtsA, db.maxCourtsA);
-                db.courtsB = cleanCourts(db.courtsB, db.maxCourtsB);
+                db.autoPoolCombined = Math.min(db.autoPoolCombined, db.maxCourtsCombined);
+                if(db.autoPoolCombined === 0) db.autoModeCombined = false;
                 
-                saveToCloud();
+            } else if (targetKey === 'A') {
+                // A単独では増減させず、下の toggleCourtAssignment で面数を決定するUIにしているため今回はスキップ
+                return;
             }
+            
+            db.courtsCombined = cleanCourts(db.courtsCombined, db.maxCourtsCombined);
+            db.courtsA = cleanCourts(db.courtsA, db.maxCourtsA);
+            db.courtsB = cleanCourts(db.courtsB, db.maxCourtsB);
+            saveToCloud();
         }
         
         function toggleCourtAssignment(courtId) {
@@ -1112,6 +1263,11 @@
             db.maxCourtsA = db.courtAssignmentsA.length;
             db.maxCourtsB = Math.max(0, db.maxCourtsCombined - db.maxCourtsA);
             
+            db.autoPoolA = Math.min(db.autoPoolA, db.maxCourtsA);
+            if(db.autoPoolA === 0) db.autoModeA = false;
+            db.autoPoolB = Math.min(db.autoPoolB, db.maxCourtsB);
+            if(db.autoPoolB === 0) db.autoModeB = false;
+
             db.courtsA = cleanCourts(db.courtsA, db.maxCourtsA);
             db.courtsB = cleanCourts(db.courtsB, db.maxCourtsB);
             
@@ -1146,6 +1302,8 @@
                     });
                     db.queueCombined = []; db.queueA = []; db.queueB = [];
                     
+                    db.autoModeCombined = false; db.autoModeA = false; db.autoModeB = false;
+                    
                     db.courtsCombined = cleanCourts([], db.maxCourtsCombined);
                     db.courtsA = cleanCourts([], db.maxCourtsA);
                     db.courtsB = cleanCourts([], db.maxCourtsB);
@@ -1166,7 +1324,6 @@
             if (db.players.some(p => p.name === name)) return alert("既に登録されています。");
             
             let maxId = db.players.reduce((max, p) => Math.max(max, p.id), 0);
-            
             saveStateToHistory();
             db.players.push({ id: maxId + 1, name: name, rank: rank, status: 'inactive', playCount: 0, dailyNum: null });
             input.value = "";
@@ -1189,7 +1346,9 @@
             else if (player.team === 'A') db.queueA.push(id);
             else db.queueB.push(id);
             
+            let calls = evaluateAutoModes();
             saveToCloud();
+            calls.forEach(c => speakCall(c));
         }
 
         function openPlayerMenu(id) {
@@ -1242,7 +1401,10 @@
                 }
             }
             document.getElementById('statusModal').style.display = 'none';
+            
+            let calls = evaluateAutoModes();
             saveToCloud();
+            calls.forEach(c => speakCall(c));
         }
 
         function endCourt(idx) {
@@ -1264,7 +1426,11 @@
                 }
             });
             court.p = []; court.selected = false; court.highlight = false;
+            
+            // ★V77: OUT直後に自動進行を評価する
+            let calls = evaluateAutoModes();
             saveToCloud();
+            calls.forEach(c => speakCall(c));
         }
 
         function toggleManualSelect(id) {
@@ -1338,24 +1504,17 @@
 
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
-            if (manualSelectedIds.length > 0) {
-                return alert("優先選択中です。解除してから一斉INしてください。");
-            }
+            if (manualSelectedIds.length > 0) return alert("優先選択中です。解除してから一斉INしてください。");
             
             let courts = getActiveCourts();
             let emptyIdxs = [];
-            courts.forEach((c, i) => {
-                if (!c.p || c.p.length === 0) emptyIdxs.push(i);
-            });
+            courts.forEach((c, i) => { if (!c.p || c.p.length === 0) emptyIdxs.push(i); });
             
             if (emptyIdxs.length === 0) return alert("空きコートがありません。");
             
             let queue = getActiveQueue();
             let courtsToFill = Math.min(emptyIdxs.length, Math.floor(queue.length / 4));
-            if (courtsToFill === 0) {
-                if (queue.length > 0 && queue.length < 4) return alert("人数が足りません（4人必要です）。");
-                else return alert("空きコートがないか、人数が足りません。");
-            }
+            if (courtsToFill === 0) return alert("空きコートがないか、人数が足りません。");
 
             saveStateToHistory();
             courts.forEach(c => c.highlight = false);
@@ -1367,7 +1526,6 @@
             else db.queueB = queue;
             
             shuffleArray(playersToAssign);
-            
             let callTexts = []; 
 
             for (let i = 0; i < courtsToFill; i++) {
@@ -1392,7 +1550,6 @@
                 }
             }
             saveToCloud();
-            
             callTexts.forEach(text => speakCall(text));
         }
 
@@ -1406,9 +1563,7 @@
             if (!isAdmin) return;
             let courts = getActiveCourts();
             let selectedIdxs = [];
-            courts.forEach((c, i) => {
-                if (c.selected && c.p && c.p.length > 0) selectedIdxs.push(i);
-            });
+            courts.forEach((c, i) => { if (c.selected && c.p && c.p.length > 0) selectedIdxs.push(i); });
             
             if (selectedIdxs.length === 0) return alert("シャッフルするチーム枠をタップして選択してください。");
 
@@ -1543,13 +1698,12 @@
             
             sortedMaster.forEach(p => {
                 let rnk = p.rank === 'A' ? '上級' : '中級';
-                let nameColor = p.rank === 'A' ? '#9F1239' : '#111827';
                 
                 html += `
                 <div class="list-row">
                     <div style="display:flex; align-items:center; flex:1; min-width:0; margin-right:8px;">
                         <div style="width:24px; text-align:right; color:var(--text-sub); font-size:0.8em; margin-right:8px; flex-shrink:0;">${p.id}.</div>
-                        <div style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:900; color:${nameColor};">${p.name}</div>
+                        <div class="rank-text-${p.rank}" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
                         <div style="width:56px; text-align:center; flex-shrink:0;">
                             <span class="rank-badge rank-${p.rank}" style="white-space:nowrap;">${rnk}</span>
                         </div>
@@ -1601,9 +1755,8 @@
             if(!isAdmin) return;
             let p = db.players.find(x => String(x.id) === String(id));
             if(!p) return;
-            if(p.status !== 'inactive') {
-                return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩」させてください。");
-            }
+            if(p.status !== 'inactive') return alert("参加中（IN）のメンバーは削除できません。\n先にメンバー画面で「休憩」させてください。");
+            
             if(confirm(`「${p.name}」さんを名簿から完全に削除しますか？`)) {
                 saveStateToHistory();
                 db.players = db.players.filter(x => String(x.id) !== String(id));
@@ -1684,17 +1837,21 @@
         // ==========================================
         function render() {
             try {
+                let currentAutoMode = db.mode === 'combined' ? db.autoModeCombined : (currentViewRank === 'A' ? db.autoModeA : db.autoModeB);
+                let currentAutoPool = db.mode === 'combined' ? db.autoPoolCombined : (currentViewRank === 'A' ? db.autoPoolA : db.autoPoolB);
+
                 if (isAdmin) {
+                    // 保守タブの描画
                     document.getElementById('settingMode').value = db.mode;
                     if (db.mode === 'combined') {
                         document.getElementById('courtSettingsCombined').style.display = 'flex';
                         document.getElementById('courtSettingsSplit').style.display = 'none';
                         document.getElementById('settingCourtCountCombined').innerText = db.maxCourtsCombined;
+                        document.getElementById('settingAutoPoolCombined').innerText = db.autoPoolCombined;
                     } else {
                         document.getElementById('courtSettingsCombined').style.display = 'none';
                         document.getElementById('courtSettingsSplit').style.display = 'flex';
                         
-                        // ★V75: Cではなく「コート」と表記し、はみ出さないよう幅を33.33%に変更
                         let togglesHtml = '';
                         for(let i=1; i<=db.maxCourtsCombined; i++) {
                             let isA = db.courtAssignmentsA.includes(i);
@@ -1711,8 +1868,19 @@
                         if (aCountEl) aCountEl.innerText = db.maxCourtsA;
                         let bCountEl = document.getElementById('settingCourtCountB');
                         if (bCountEl) bCountEl.innerText = db.maxCourtsB;
+                        
+                        document.getElementById('settingAutoPoolA').innerText = db.autoPoolA;
+                        document.getElementById('settingAutoPoolB').innerText = db.autoPoolB;
                     }
 
+                    // 試合中の戻る・入替ボタンのロック管理
+                    if(document.getElementById('btnUndo')) document.getElementById('btnUndo').disabled = stateHistory.length === 0 || currentAutoMode; 
+                    if(document.getElementById('btnSwap')) {
+                        document.getElementById('btnSwap').disabled = currentAutoMode;
+                        document.getElementById('btnSwap').style.opacity = currentAutoMode ? '0.4' : '1';
+                    }
+
+                    // 受付画面の描画
                     let inactiveHtml = "";
                     let presentHtml = "";
                     let presentCount = 0;
@@ -1725,14 +1893,12 @@
                         let isNext = (p.status === 'waiting' && pQueue.indexOf(p.id) < 4 && pQueue.indexOf(p.id) !== -1);
                         let statusTxt = p.status === 'playing' ? '試合中' : (isNext ? 'NEXT' : '待機');
                         
-                        let dotHtml = p.status === 'playing' 
-                            ? '<div class="status-dot dot-playing"></div>' 
-                            : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
+                        let dotHtml = p.status === 'playing' ? '<div class="status-dot dot-playing"></div>' : '<div style="width:14px; height:14px; flex-shrink:0;"></div>';
                         
                         let tmStr = p.team === 'A' ? 'Aチーム' : 'Bチーム';
-                        let teamBtn = isAdmin 
-                            ? `<button class="rank-badge rank-${p.team}" onclick="event.stopPropagation(); toggleTeam(${p.id})" style="cursor:pointer; width:68px;">${tmStr} 🔄</button>` 
-                            : `<span class="rank-badge rank-${p.team}" style="display:inline-block; width:56px; text-align:center;">${tmStr}</span>`;
+                        // ★V77: 自動進行ONの時はチーム移動もロック
+                        let teamAction = currentAutoMode ? '' : `onclick="event.stopPropagation(); toggleTeam(${p.id})"`;
+                        let teamBtn = `<button class="rank-badge rank-${p.team}" ${teamAction} style="cursor:${currentAutoMode?'not-allowed':'pointer'}; opacity:${currentAutoMode?'0.5':'1'}; width:68px;">${tmStr} 🔄</button>`;
                         
                         presentHtml += `
                             <div class="list-row" onclick="openPlayerMenu(${p.id})">
@@ -1774,9 +1940,7 @@
                     document.getElementById('presentList').innerHTML = presentHtml;
                     
                     let activeCountEl = document.getElementById('activeCount');
-                    if (activeCountEl) {
-                        activeCountEl.innerText = presentCount;
-                    }
+                    if (activeCountEl) activeCountEl.innerText = presentCount;
                     
                     renderHistoryOptions();
                     renderMaintenanceRoster();
@@ -1803,6 +1967,40 @@
                         </div>`;
                 }
 
+                // ★V77: 自動進行モードボタンの表示
+                let autoModeContainer = document.getElementById('autoModeContainer');
+                if (autoModeContainer) {
+                    if (currentAutoPool > 0 && isAdmin) {
+                        autoModeContainer.style.display = 'flex';
+                        let btnAuto = document.getElementById('btnAutoModeToggle');
+                        if (currentAutoMode) {
+                            btnAuto.innerHTML = `🤖 自動進行: ON <span style="font-size:0.9rem; font-weight:normal;">(あと${currentAutoPool}面OUTで発動)</span>`;
+                            btnAuto.style.background = '#10B981';
+                            btnAuto.style.color = 'white';
+                            btnAuto.style.borderColor = '#059669';
+                        } else {
+                            btnAuto.innerHTML = `🤖 自動進行: OFF <span style="font-size:0.9rem; font-weight:normal;">(プール${currentAutoPool}面設定済)</span>`;
+                            btnAuto.style.background = '#F3F4F6';
+                            btnAuto.style.color = 'var(--text-sub)';
+                            btnAuto.style.borderColor = '#D1D5DB';
+                        }
+                    } else {
+                        autoModeContainer.style.display = 'none';
+                    }
+                }
+                
+                // ★V77: 手動アクションのグレーアウト
+                let actionGrid = document.getElementById('manualActionGrid');
+                if (actionGrid) {
+                    if (currentAutoMode) {
+                        actionGrid.style.opacity = '0.4';
+                        actionGrid.style.pointerEvents = 'none';
+                    } else {
+                        actionGrid.style.opacity = '1';
+                        actionGrid.style.pointerEvents = 'auto';
+                    }
+                }
+
                 let nextHtml = "";
                 let activeQueue = getActiveQueue();
                 if (activeQueue.length > 0) {
@@ -1811,14 +2009,15 @@
                         if (!p) return;
                         let isTop4 = index < 4;
                         let isSelected = isAdmin && manualSelectedIds.includes(id);
-                        
                         let isFollowed = !isAdmin && followedIds.includes(Number(id));
-                        let clickAction = isAdmin ? `onclick="toggleManualSelect(${id})"` : `onclick="toggleFollow(${id})"`;
+                        
+                        // ★V77: 自動ONの時は優先クリックも無効
+                        let clickAction = (isAdmin && !currentAutoMode) ? `onclick="toggleManualSelect(${id})"` : (!isAdmin ? `onclick="toggleFollow(${id})"` : "");
                         
                         let slotClass = "next-slot" + (isTop4 ? " top-4" : "") + (isSelected ? " manual-selected" : "") + (isFollowed ? " follow-selected" : "");
                         
                         nextHtml += `
-                            <div class="${slotClass}" ${clickAction}>
+                            <div class="${slotClass}" ${clickAction} style="${(isAdmin && currentAutoMode) ? 'cursor:not-allowed;' : ''}">
                                 <div class="next-slot-name">${formatNameHTML(p)}</div>
                                 <div class="admin-only" style="font-size:0.8rem; font-weight:bold;">(${p.playCount}回)</div>
                                 ${isFollowed ? '<div style="font-size:0.75rem; color:#0284C7; font-weight:900; margin-top:2px;">🔔 通知ON</div>' : ''}
@@ -1828,7 +2027,6 @@
                 document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
                 let courtsHtml = "";
-                
                 const renderCourtCard = (c, idx, displayCourtId, isGreyedOut) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return "";
 
@@ -1837,14 +2035,14 @@
                     let p3 = c.p.length > 2 ? (db.players.find(pl => String(pl.id) === String(c.p[2])) || {name:"不明", rank:"B", team:"B"}) : null;
                     let p4 = c.p.length > 3 ? (db.players.find(pl => String(pl.id) === String(c.p[3])) || {name:"不明", rank:"B", team:"B"}) : null;
                     
-                    let selectedStyle = c.selected && isAdmin && !isGreyedOut ? "selected" : "playing";
+                    let selectedStyle = c.selected && isAdmin && !isGreyedOut && !currentAutoMode ? "selected" : "playing";
                     let highlightClass = c.highlight && !isGreyedOut ? "highlight" : "";
                     let greyClass = isGreyedOut ? "greyed-out" : "";
                     let otherTeamName = currentViewRank === 'A' ? 'B' : 'A';
                     
                     let html = "";
                     if (c.p.length > 0) {
-                        let actionAttr = (isAdmin && !isGreyedOut) ? `onclick="toggleCheck(${idx}, ${!c.selected})"` : "";
+                        let actionAttr = (isAdmin && !isGreyedOut && !currentAutoMode) ? `onclick="toggleCheck(${idx}, ${!c.selected})"` : "";
                         html += `
                             <div class="court-card ${highlightClass} ${greyClass}">
                                 <div class="court-header">
@@ -1871,9 +2069,16 @@
                                     <span class="court-title" style="color:var(--text-sub);">コート <span style="font-size:1.4em;">${displayCourtId}</span></span>
                                     ${isGreyedOut ? `<span style="font-size:0.85rem; font-weight:bold; color:#9CA3AF;">${otherTeamName}チーム専用</span>` : ''}
                                 </div>
-                                <div style="flex-grow:1; min-height:80px;"></div>
-                                ${!isGreyedOut ? `<button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>` : ''}
-                            </div>`;
+                                <div style="flex-grow:1; min-height:80px;"></div>`;
+                                
+                        if (!isGreyedOut) {
+                            if (currentAutoMode) {
+                                html += `<button class="btn-secondary admin-only" disabled style="background:#E5E7EB; color:#6B7280; font-weight:900; border:2px solid #D1D5DB; width:100%; cursor:not-allowed;">🤖 自動待機中</button>`;
+                            } else {
+                                html += `<button class="btn-primary admin-only" onclick="fillCourt(${idx})">▶ IN</button>`;
+                            }
+                        }
+                        html += `</div>`;
                     }
                     return html;
                 };
