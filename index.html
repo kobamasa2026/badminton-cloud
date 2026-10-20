@@ -224,10 +224,10 @@
         <div id="resetBtnContainer"></div>
     </div>
 
-    <!-- ★V71: ログイン・ログアウトボタンを左上に統一 -->
+    <!-- ログイン・ログアウトボタンを左上に統一 -->
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V71</h1>
+            <h1 class="header-title" style="margin-right:4px;">V73</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -314,13 +314,13 @@
                 <div style="margin-bottom:16px;">
                     <label style="font-size:0.9rem; font-weight:bold; color:var(--text-sub);">運用モード設定</label>
                     <select id="settingMode" class="input-text" style="font-weight:bold;" onchange="changeOperationMode(this.value)">
-                        <option value="combined">合同（全体をひとつの列で回す）</option>
+                        <!-- ★V73: 表記を「分割しない」に変更 -->
+                        <option value="combined">合同（分割しない）</option>
                         <option value="split">チーム別（A/Bで列とコートを分ける）</option>
                     </select>
                 </div>
                 
-                <!-- ★V71: Aを指定すればBが自動計算される安全なUI -->
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
+                <div id="courtSettingsCombined" style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px dashed var(--border); padding-top:16px;">
                     <span style="font-weight:bold; font-size:1.1rem;">総コート数</span>
                     <div style="display:flex; align-items:center; gap:16px;">
                         <button class="btn-secondary" style="padding:8px 16px; font-size:1.2rem;" onclick="changeMaxCourts('combined', -1)">ー</button>
@@ -379,7 +379,7 @@
     </main>
 
     <nav class="bottom-nav">
-        <!-- ★V71: メニュー消失を防ぐためDOMは常に維持し、CSSで表示切替 -->
+        <!-- メニュー消失を防ぐためDOMは常に維持し、CSSで表示切替 -->
         <button class="nav-item active" data-target="matches">
             <span class="nav-icon">🏸</span><span>試合</span>
         </button>
@@ -440,7 +440,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V71)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V73)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -456,7 +456,8 @@
 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 試合の進行と音声コール・通知</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。この時、端末から対象者の受付番号とコート番号が自動で音声読み上げされます。</li>
+                    <!-- ★V73: 監督モードからのみ音声読み上げが行われることを明記 -->
+                    <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。この時、<strong>監督モードの端末からのみ</strong>、対象者の受付番号とコート番号が自動で音声読み上げされます。</li>
                     <li><b>優先IN</b>：待機列のメンバーをタップ（黄色枠）してからINすると優先的に入ります。</li>
                     <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
                     <li><b>シャッフル</b>：チーム枠をタップ（ピンク色）し「🔁 シャッフル」で選択したコート内だけでペア・対戦相手を組み直します。</li>
@@ -524,7 +525,6 @@
             window.speechSynthesis.onvoiceschanged = loadVoices;
         }
 
-        // ★V71: 語尾のマル（。）で自然にトーンを下げる
         function speakCall(text) {
             if (!isAdmin) return;
             if ('speechSynthesis' in window) {
@@ -728,7 +728,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v71_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v73_ipad_' + groupId;
         let stateHistory = [];
         let manualSelectedIds = [];
         let currentViewRank = 'A'; 
@@ -1053,7 +1053,6 @@
             saveToCloud();
         }
 
-        // ★V71: コートを減らした時に使用中かどうかの安全チェックを完璧に修正
         function changeMaxCourts(targetKey, delta) {
             if (!isAdmin) return;
             
@@ -1279,6 +1278,7 @@
             if (unselectedQueue.length < remainingNeeded) return alert("人数が足りません。");
 
             saveStateToHistory();
+            
             courts.forEach(c => c.highlight = false);
             
             let additional = unselectedQueue.splice(0, remainingNeeded);
@@ -1309,7 +1309,6 @@
                 if (db.mode === 'split' && currentViewRank === 'B') {
                     displayCourtId = parseInt(db.maxCourtsA, 10) + displayCourtId;
                 }
-                // ★V71: 語尾のマル（。）で自然にトーンを下げる
                 speakCall(`${callNumsStr}、第${displayCourtId}コートにおはいりください。`);
             }
         }
@@ -1792,7 +1791,6 @@
                 }
                 document.getElementById('nextQueueUI').innerHTML = nextHtml;
 
-                // ★V71: 他チームのコートをグレーアウト表示するレンダリング関数
                 let courtsHtml = "";
                 const renderCourtCard = (c, idx, displayCourtId, isGreyedOut) => {
                     if (!c || !c.p || !Array.isArray(c.p)) return "";
