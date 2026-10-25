@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>【V80】バドミントン組み合わせボード</title>
+    <title>【V81】バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -115,6 +115,7 @@
             color: var(--text-sub); font-weight: 900; scroll-snap-align: start; cursor: pointer; transition: all 0.2s;
         }
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--text-main); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
+        .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot.follow-selected { background: #E0F2FE; border: 4px solid #0EA5E9; color: #0369A1; box-shadow: 0 0 12px rgba(14, 165, 233, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
 
@@ -236,7 +237,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V80</h1>
+            <h1 class="header-title" style="margin-right:4px;">V81</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -254,7 +255,6 @@
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                     <div id="matchHeaderTitle" style="display:flex; justify-content:center; width:100%;"></div>
                     
-                    <!-- ★V80: 試合画面に常に表示し、操作を案内する -->
                     <div id="autoModeContainer" class="admin-only" style="display:none; justify-content:center; width:100%;">
                         <button id="btnAutoModeToggle" class="btn-secondary" style="font-weight:900; width:100%; border:2px solid var(--border); font-size:1.1rem; padding:12px;" onclick="toggleAutoMode()">
                             🤖 自動進行: OFF
@@ -346,7 +346,6 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
                         <div>
                             <span style="font-weight:bold; font-size:1.1rem;">自動IN プール面数</span><br>
-                            <!-- ★V80: 文言の変更 -->
                             <span style="font-size:0.8rem; color:var(--text-sub);">※自動進行を利用する場合は1以上に設定してください</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:16px;">
@@ -480,7 +479,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V80)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V81)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -490,7 +489,7 @@
 
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. 自動進行モード (監督の手放し運用)</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li>保守画面で「自動IN プール面数」を設定すると、試合画面から「🤖 自動進行」をONにできるようになります。</li>
+                    <li>「保守」画面で「自動IN (プール面数)」を1以上に設定すると、試合画面に「🤖 自動進行」スイッチが出現します。</li>
                     <li>ONにすると、指定した面数がOUTで空いた瞬間に、自動でシャッフルとINが行われ音声コールが鳴ります。</li>
                     <li><b>【安全装置】</b>「プール面数×4人」の参加者が揃っていない場合はONにできません。また稼働中に休憩等で人数が不足した場合、システムが自動でOFFにして警告アラートを出します。</li>
                 </ul>
@@ -498,7 +497,7 @@
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 手動での試合進行と通知</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。（監督端末から音声読み上げあり）</li>
-                    <li><b>順番の変更（優先）</b>：監督モードで待機列のメンバーをタップすると、その人が列の先頭に移動します。（急な呼び出しで行動が遅れるのを防げます）</li>
+                    <li><b>順番の変更（優先）</b>：監督モードで待機列のメンバーをタップすると、その人が列の先頭に移動します。</li>
                     <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
                     <li><b>参加者の点滅通知</b>：一般モードで待機中の自分の名前をタップ（青色枠）しておくと、コートに入った瞬間に自分の名前が10秒間点滅してお知らせします。</li>
                 </ul>
@@ -764,7 +763,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v80_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v81_ipad_' + groupId;
         let stateHistory = [];
         let currentViewRank = 'A'; 
 
@@ -1028,16 +1027,14 @@
             return { calls, alerts };
         }
 
-        // ★V80: ON/OFFボタンが常に表示され、プール0の時にONにしようとすると誘導アラートを出す
         function toggleAutoMode() {
             if (!isAdmin) return;
             let groupRank = db.mode === 'combined' ? 'combined' : currentViewRank;
             let modeKey = groupRank === 'combined' ? 'autoModeCombined' : (groupRank === 'A' ? 'autoModeA' : 'autoModeB');
             let poolKey = groupRank === 'combined' ? 'autoPoolCombined' : (groupRank === 'A' ? 'autoPoolA' : 'autoPoolB');
             
-            let pool = db[poolKey];
-
             if (!db[modeKey]) {
+                let pool = db[poolKey];
                 if (pool === 0) {
                     return alert("【設定が必要です】\n保守画面で「自動IN プール面数」を1以上に設定してください。");
                 }
@@ -1053,8 +1050,8 @@
             if (db[modeKey]) {
                 let evalRes = evaluateAutoModes();
                 saveToCloud();
-                evalRes.calls.forEach(c => speakCall(c));
-                if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+                if (evalRes.calls.length > 0) speakCall(evalRes.calls.join("。 "));
+                if (evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
             } else {
                 saveToCloud();
             }
@@ -1081,8 +1078,8 @@
                 
                 let evalRes = evaluateAutoModes();
                 saveToCloud();
-                evalRes.calls.forEach(c => speakCall(c));
-                if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+                if (evalRes.calls.length > 0) speakCall(evalRes.calls.join("。 "));
+                if (evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
             }
         }
 
@@ -1105,8 +1102,8 @@
             
             let evalRes = evaluateAutoModes();
             saveToCloud();
-            evalRes.calls.forEach(c => speakCall(c));
-            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+            if (evalRes.calls.length > 0) speakCall(evalRes.calls.join("。 "));
+            if (evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function openSwapModal() {
@@ -1388,8 +1385,8 @@
             
             let evalRes = evaluateAutoModes();
             saveToCloud();
-            evalRes.calls.forEach(c => speakCall(c));
-            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+            if (evalRes.calls.length > 0) speakCall(evalRes.calls.join("。 "));
+            if (evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function openPlayerMenu(id) {
@@ -1445,8 +1442,8 @@
             
             let evalRes = evaluateAutoModes();
             saveToCloud();
-            evalRes.calls.forEach(c => speakCall(c));
-            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+            if (evalRes.calls.length > 0) speakCall(evalRes.calls.join("。 "));
+            if (evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function endCourt(idx) {
@@ -1471,8 +1468,8 @@
             
             let evalRes = evaluateAutoModes();
             saveToCloud();
-            evalRes.calls.forEach(c => speakCall(c));
-            if(evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
+            if (evalRes.calls.length > 0) speakCall(evalRes.calls.join("。 "));
+            if (evalRes.alerts.length > 0) setTimeout(() => alert(evalRes.alerts.join('\n')), 100);
         }
 
         function fillCourt(idx) {
@@ -1516,6 +1513,7 @@
             }
         }
 
+        // ★V81: 連続呼び出し時に発生するChromeのフリーズバグを回避
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
             
@@ -1563,7 +1561,11 @@
                 }
             }
             saveToCloud();
-            callTexts.forEach(text => speakCall(text));
+            
+            // 全文を結合して1回の命令で発声させる（フリーズ対策）
+            if (callTexts.length > 0) {
+                speakCall(callTexts.join("。 "));
+            }
         }
 
         function toggleCheck(idx, checked) { 
@@ -1977,7 +1979,6 @@
                         </div>`;
                 }
 
-                // ★V80: 自動モードボタンを常に表示し、未設定の場合はアラート誘導する
                 let autoModeContainer = document.getElementById('autoModeContainer');
                 if (autoModeContainer) {
                     if (isAdmin) {
