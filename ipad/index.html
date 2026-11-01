@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>【V82】バドミントン組み合わせボード</title>
+    <title>【V83】バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -237,7 +237,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V82</h1>
+            <h1 class="header-title" style="margin-right:4px;">V83</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -479,7 +479,7 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V82)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V83)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
                 <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
@@ -763,7 +763,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v82_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v83_ipad_' + groupId;
         let stateHistory = [];
         let currentViewRank = 'A'; 
 
@@ -947,7 +947,6 @@
             return assignmentsB[idx];
         }
 
-        // ★V82修正: 手動INの時でも現在の画面のコート番号が正しく取れるように追加
         function getDisplayCourtId(idx) {
             let groupRank = db.mode === 'combined' ? 'combined' : currentViewRank;
             return getDisplayCourtIdForGroup(idx, groupRank);
@@ -1519,7 +1518,6 @@
             }
         }
 
-        // ★V82: 手動の「一斉IN」のフリーズ問題を回避
         function fillAllEmptyCourts() {
             if (!isAdmin) return;
             
@@ -1562,14 +1560,12 @@
                 }).filter(n => n !== "").join("、");
 
                 if (callNumsStr) {
-                    // ★V82修正: 正しい関数を呼び出す
                     let displayCourtId = getDisplayCourtId(cIdx);
                     callTexts.push(`${callNumsStr}、第${displayCourtId}コートに おはいりください`);
                 }
             }
             saveToCloud();
             
-            // 全文を結合して1回の命令で発声させる（フリーズ対策）
             if (callTexts.length > 0) {
                 speakCall(callTexts.join("。 "));
             }
@@ -1992,7 +1988,8 @@
                         autoModeContainer.style.display = 'flex';
                         let btnAuto = document.getElementById('btnAutoModeToggle');
                         if (currentAutoMode) {
-                            btnAuto.innerHTML = `🤖 自動進行: ON <span style="font-size:0.9rem; font-weight:normal;">(あと${currentAutoPool}面OUTで発動)</span>`;
+                            // ★V83: 表示テキストを誤解のない「(設定中)」という形に変更
+                            btnAuto.innerHTML = `🤖 自動進行: ON <span style="font-size:0.9rem; font-weight:normal;">(${currentAutoPool}面設定中)</span>`;
                             btnAuto.style.background = '#10B981';
                             btnAuto.style.color = 'white';
                             btnAuto.style.borderColor = '#059669';
