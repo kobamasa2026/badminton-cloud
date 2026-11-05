@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>【V83】バドミントン組み合わせボード</title>
+    <title>【V84】バドミントン組み合わせボード</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -115,7 +115,6 @@
             color: var(--text-sub); font-weight: 900; scroll-snap-align: start; cursor: pointer; transition: all 0.2s;
         }
         .next-slot.top-4 { background: #F3E8FF; border: 3px solid var(--status-next); color: var(--text-main); box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); }
-        .next-slot.manual-selected { background: #FEF3C7; border: 4px solid #F59E0B; color: #D97706; box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); transform: scale(1.05); }
         .next-slot.follow-selected { background: #E0F2FE; border: 4px solid #0EA5E9; color: #0369A1; box-shadow: 0 0 12px rgba(14, 165, 233, 0.5); transform: scale(1.05); }
         .next-slot-name { font-size: 1.2rem; margin-bottom: 2px; text-align: center;}
 
@@ -237,7 +236,7 @@
 
     <header>
         <div style="display:flex; align-items:center; z-index:2; gap:8px;">
-            <h1 class="header-title" style="margin-right:4px;">V83</h1>
+            <h1 class="header-title" style="margin-right:4px;">V84</h1>
             <button class="btn-undo viewer-only" onclick="adminLogin()" style="background:#E5E7EB; color:#111827; padding:4px 10px; font-size:0.8rem; height:28px;">🔒 監督ログイン</button>
             <button class="btn-undo admin-only" onclick="adminLogout()" style="background:#FEE2E2; color:#DC2626; padding:4px 10px; font-size:0.8rem; height:28px;">🔓 監督解除</button>
         </div>
@@ -326,6 +325,18 @@
 
             <div class="card">
                 <div class="section-title">運用モードとコート数</div>
+                
+                <!-- ★V84: 組み合わせロジック設定の追加 -->
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:0.9rem; font-weight:bold; color:var(--text-sub);">組み合わせロジック設定</label>
+                    <select id="settingShuffleLogic" class="input-text" style="font-weight:bold;" onchange="changeShuffleLogic(this.value)">
+                        <option value="random">完全ランダム（従来の方式）</option>
+                        <option value="avoid_dup">重複回避（ペア・対戦相手の偏りを防ぐ）</option>
+                    </select>
+                </div>
+                
+                <hr style="border:none; border-top:1px dashed var(--border); margin:16px 0;">
+
                 <div style="margin-bottom:16px;">
                     <label style="font-size:0.9rem; font-weight:bold; color:var(--text-sub);">運用モード設定</label>
                     <select id="settingMode" class="input-text" style="font-weight:bold;" onchange="changeOperationMode(this.value)">
@@ -479,33 +490,31 @@
 
     <div class="modal-overlay admin-only" id="manualModal" onclick="closeManualModal(event)">
         <div class="modal-content" style="max-width: 600px; text-align: left; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V83)</h2>
+            <h2 style="margin-top:0; font-size:1.4rem; font-weight:900; border-bottom: 2px solid var(--border); padding-bottom: 8px;">📖 機能概要と使い方 (V84)</h2>
             <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); margin-bottom: 24px;">
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. ログインと安全装置</h3>
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">1. 重複回避シャッフル機能の追加</h3>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                    <li>保守画面から「重複回避」モードを選択できるようになりました。</li>
+                    <li>ONにすると、裏側で一瞬のうちに数十パターンの組み合わせを作り、その中から<b>「今まで組んだ回数が最も少ないペア」「対戦した回数が最も少ない相手」</b>を自動的に選び出して配置します。</li>
+                </ul>
+
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. ログインと安全装置</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li>左上の「🔒監督ログイン」からパスワード入力で監督モードになります。</li>
                     <li>一般参加者のスマホからは操作できず、待機順の「プレイ回数」も見えないようになっています。</li>
                 </ul>
 
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">2. 自動進行モード (監督の手放し運用)</h3>
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 自動進行モード (監督の手放し運用)</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
                     <li>「保守」画面で「自動IN (プール面数)」を1以上に設定すると、試合画面に「🤖 自動進行」スイッチが出現します。</li>
                     <li>ONにすると、指定した面数がOUTで空いた瞬間に、自動でシャッフルとINが行われ音声コールが鳴ります。</li>
                     <li><b>【安全装置】</b>「プール面数×4人」の参加者が揃っていない場合はONにできません。また稼働中に休憩等で人数が不足した場合、システムが自動でOFFにして警告アラートを出します。</li>
                 </ul>
                 
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">3. 手動での試合進行と通知</h3>
+                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">4. 手動での試合進行と通知</h3>
                 <ul style="padding-left: 20px; margin-top: 0;">
-                    <li><b>一斉IN / 個別IN</b>：空きコートに待機列先頭から4人ずつ入ります。（監督端末から音声読み上げあり）</li>
                     <li><b>順番の変更（優先）</b>：監督モードで待機列のメンバーをタップすると、その人が列の先頭に移動します。</li>
-                    <li><b>OUT</b>：「⏹ OUT」でコートの4人が待機列の最後尾に戻ります。</li>
                     <li><b>参加者の点滅通知</b>：一般モードで待機中の自分の名前をタップ（青色枠）しておくと、コートに入った瞬間に自分の名前が10秒間点滅してお知らせします。</li>
-                </ul>
-
-                <h3 style="color: var(--primary); margin-top: 16px; margin-bottom: 4px;">4. 修正機能</h3>
-                <ul style="padding-left: 20px; margin-top: 0;">
-                    <li><b>戻る (↩)</b>：直前の操作を1つ取り消します。</li>
-                    <li><b>入替 (🔄)</b>：間違えてコートに入った2名の場所とプレイ回数を自動で入れ替えます。</li>
                 </ul>
             </div>
             <button class="btn-secondary" style="width:100%; padding:16px; font-size:1.1rem;" onclick="closeManualModal()">閉じる</button>
@@ -561,29 +570,100 @@
             if (!isAdmin) return;
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                
                 const msg = new SpeechSynthesisUtterance(text);
                 msg.lang = 'ja-JP';
                 msg.rate = 0.92; 
                 msg.pitch = 1.0;
-                
                 if (availableVoices.length > 0) {
                     let jaVoices = availableVoices.filter(v => v.lang.includes('ja'));
                     let bestVoice = jaVoices.find(v => v.name.includes('Google') || v.name.includes('Siri') || v.name.includes('Kyoko') || v.name.includes('Premium') || v.name.includes('O-ren'));
                     if (bestVoice) msg.voice = bestVoice;
                     else if (jaVoices.length > 0) msg.voice = jaVoices[0];
                 }
-                
                 window.speechSynthesis.speak(msg);
             }
         }
 
+        // 基本のランダムシャッフル
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
             return array;
+        }
+
+        // ★V84: 重複回避のペナルティ計算
+        function getPenalty(playersArray) {
+            let score = 0;
+            for (let i = 0; i < playersArray.length; i += 4) {
+                if (i + 3 < playersArray.length) {
+                    let p1 = playersArray[i], p2 = playersArray[i+1];
+                    let p3 = playersArray[i+2], p4 = playersArray[i+3];
+
+                    let obj1 = db.players.find(p => String(p.id) === String(p1)) || { historyPair:{}, historyOpp:{} };
+                    let obj2 = db.players.find(p => String(p.id) === String(p2)) || { historyPair:{}, historyOpp:{} };
+                    let obj3 = db.players.find(p => String(p.id) === String(p3)) || { historyPair:{}, historyOpp:{} };
+                    let obj4 = db.players.find(p => String(p.id) === String(p4)) || { historyPair:{}, historyOpp:{} };
+
+                    // ペア重複は重ペナルティ(100)
+                    score += (obj1.historyPair[p2] || 0) * 100;
+                    score += (obj3.historyPair[p4] || 0) * 100;
+
+                    // 対戦重複は軽ペナルティ(10)
+                    let oppScore = 0;
+                    oppScore += (obj1.historyOpp[p3] || 0) + (obj1.historyOpp[p4] || 0);
+                    oppScore += (obj2.historyOpp[p3] || 0) + (obj2.historyOpp[p4] || 0);
+                    score += oppScore * 10;
+                }
+            }
+            return score;
+        }
+
+        // ★V84: 重複回避アルゴリズム（モンテカルロ法で50パターンから最良を選ぶ）
+        function smartShuffle(array) {
+            if (db.shuffleLogic !== 'avoid_dup' || array.length < 4) {
+                shuffleArray(array);
+                return array;
+            }
+
+            let bestArray = [];
+            let minPenalty = Infinity;
+            
+            for (let i = 0; i < 50; i++) {
+                let temp = [...array];
+                shuffleArray(temp);
+                let penalty = getPenalty(temp);
+                if (penalty < minPenalty) {
+                    minPenalty = penalty;
+                    bestArray = [...temp];
+                }
+                if (penalty === 0) break; // ペナルティ0（完全な初対面）なら即採用
+            }
+            return bestArray;
+        }
+
+        // ★V84: 試合履歴（ペア・対戦）の更新
+        function updateMatchHistory(group) {
+            if (!group || group.length !== 4) return;
+            let p1 = db.players.find(p => String(p.id) === String(group[0]));
+            let p2 = db.players.find(p => String(p.id) === String(group[1]));
+            let p3 = db.players.find(p => String(p.id) === String(group[2]));
+            let p4 = db.players.find(p => String(p.id) === String(group[3]));
+
+            if(p1 && p2) { p1.historyPair[p2.id] = (p1.historyPair[p2.id]||0)+1; p2.historyPair[p1.id] = (p2.historyPair[p1.id]||0)+1; }
+            if(p3 && p4) { p3.historyPair[p4.id] = (p3.historyPair[p4.id]||0)+1; p4.historyPair[p3.id] = (p4.historyPair[p3.id]||0)+1; }
+
+            [p1, p2].forEach(a => {
+                if(a) {
+                    [p3, p4].forEach(b => {
+                        if(b) {
+                            a.historyOpp[b.id] = (a.historyOpp[b.id]||0)+1;
+                            b.historyOpp[a.id] = (b.historyOpp[a.id]||0)+1;
+                        }
+                    });
+                }
+            });
         }
 
         const toNumArray = (arr) => {
@@ -755,6 +835,7 @@
 
         let db = { 
             mode: 'combined', 
+            shuffleLogic: 'random', // ★V84: シャッフルロジック（random または avoid_dup）
             maxCourtsCombined: 6, maxCourtsA: 3, maxCourtsB: 3,
             courtAssignmentsA: [],
             autoPoolCombined: 0, autoPoolA: 0, autoPoolB: 0,
@@ -763,7 +844,7 @@
             queueCombined: [], queueA: [], queueB: [],
             players: [], dailyCounter: 1, history: {} 
         };
-        const STORAGE_KEY = 'badmin_v83_ipad_' + groupId;
+        const STORAGE_KEY = 'badmin_v84_ipad_' + groupId;
         let stateHistory = [];
         let currentViewRank = 'A'; 
 
@@ -771,6 +852,8 @@
             try {
                 const data = snapshot.val() || {};
                 
+                db.shuffleLogic = data.shuffleLogic || 'random'; // ★V84
+
                 let rawPlayers = data.players || [];
                 let pArr = Array.isArray(rawPlayers) ? rawPlayers : Object.values(rawPlayers);
                 db.players = pArr.filter(p => p != null).map(p => {
@@ -781,7 +864,9 @@
                         team: p.team || p.rank || 'B',
                         status: p.status || 'inactive',
                         playCount: Number(p.playCount) || 0,
-                        dailyNum: p.dailyNum ? Number(p.dailyNum) : null
+                        dailyNum: p.dailyNum ? Number(p.dailyNum) : null,
+                        historyPair: p.historyPair || {}, // ★V84: 履歴オブジェクトの初期化
+                        historyOpp: p.historyOpp || {}
                     };
                 });
 
@@ -971,7 +1056,8 @@
                 let batchCourts = emptyIdxs.splice(0, pool);
                 let batchPlayers = queue.splice(0, pool * 4);
                 
-                shuffleArray(batchPlayers);
+                // ★V84: スマートシャッフル
+                batchPlayers = smartShuffle(batchPlayers);
                 courts.forEach(c => c.highlight = false);
                 
                 for (let i = 0; i < pool; i++) {
@@ -980,6 +1066,8 @@
                     
                     courts[cIdx].p = group;
                     courts[cIdx].highlight = true;
+                    
+                    updateMatchHistory(group); // ★V84: 履歴を記録
                     
                     let callNumsStr = group.map(id => {
                         let p = db.players.find(pl => String(pl.id) === String(id));
@@ -1208,6 +1296,14 @@
             saveToCloud();
         }
 
+        // ★V84: シャッフルロジックの変更関数
+        function changeShuffleLogic(newLogic) {
+            if (!isAdmin) return;
+            saveStateToHistory();
+            db.shuffleLogic = newLogic;
+            saveToCloud();
+        }
+
         function changeOperationMode(newMode) {
             if (!isAdmin || newMode === db.mode) return;
             if (db.players.some(p => p.status === 'playing')) {
@@ -1340,6 +1436,8 @@
                         p.status = 'inactive'; 
                         p.playCount = 0; 
                         p.dailyNum = null; 
+                        p.historyPair = {}; // ★V84: 日次リセット時に履歴もクリア
+                        p.historyOpp = {};
                         delete p.team; 
                     });
                     db.queueCombined = []; db.queueA = []; db.queueB = [];
@@ -1367,7 +1465,7 @@
             let maxId = db.players.reduce((max, p) => Math.max(max, p.id), 0);
             
             saveStateToHistory();
-            db.players.push({ id: maxId + 1, name: name, rank: rank, status: 'inactive', playCount: 0, dailyNum: null });
+            db.players.push({ id: maxId + 1, name: name, rank: rank, status: 'inactive', playCount: 0, dailyNum: null, historyPair: {}, historyOpp: {} });
             input.value = "";
             saveToCloud();
         }
@@ -1458,7 +1556,7 @@
             let court = courts[idx];
             
             let leaving = [...(court.p || [])];
-            shuffleArray(leaving);
+            shuffleArray(leaving); // OUTの時は普通のシャッフルで列の並びをばらす
             
             leaving.forEach(id => {
                 let player = db.players.find(p => String(p.id) === String(id));
@@ -1497,8 +1595,11 @@
             else if (currentViewRank === 'A') db.queueA = queue;
             else db.queueB = queue;
             
-            shuffleArray(finalPlayers);
+            // ★V84: スマートシャッフル
+            finalPlayers = smartShuffle(finalPlayers);
             courts[idx].p = finalPlayers;
+
+            updateMatchHistory(finalPlayers); // 履歴更新
 
             let callNumsStr = finalPlayers.map(id => {
                 let p = db.players.find(pl => String(pl.id) === String(id));
@@ -1540,7 +1641,8 @@
             else if (currentViewRank === 'A') db.queueA = queue;
             else db.queueB = queue;
             
-            shuffleArray(playersToAssign);
+            // ★V84: スマートシャッフルで全コート分を一気に最適化
+            playersToAssign = smartShuffle(playersToAssign);
             let callTexts = []; 
 
             for (let i = 0; i < courtsToFill; i++) {
@@ -1549,6 +1651,8 @@
                 
                 courts[cIdx].p = group;
                 courts[cIdx].highlight = true;
+                
+                updateMatchHistory(group); // 履歴更新
                 
                 let callNumsStr = group.map(id => {
                     let p = db.players.find(pl => String(pl.id) === String(id));
@@ -1595,7 +1699,8 @@
                 courts[idx].selected = false; 
             });
             
-            shuffleArray(targetPlayers);
+            // ★V84: コート内の組み直しにも適用（ただし、これは組み直しなので履歴カウントは増やさない）
+            targetPlayers = smartShuffle(targetPlayers);
             
             let splitIndex = 0;
             selectedIdxs.forEach(idx => { 
@@ -1833,7 +1938,9 @@
                                 rank: rankVal,
                                 status: 'inactive',
                                 playCount: 0,
-                                dailyNum: null
+                                dailyNum: null,
+                                historyPair: {},
+                                historyOpp: {}
                             });
                         }
                     }
@@ -1861,6 +1968,11 @@
 
                 if (isAdmin) {
                     document.getElementById('settingMode').value = db.mode;
+                    
+                    // ★V84: 設定UIの反映
+                    let logicEl = document.getElementById('settingShuffleLogic');
+                    if(logicEl) logicEl.value = db.shuffleLogic;
+                    
                     if (db.mode === 'combined') {
                         document.getElementById('courtSettingsCombined').style.display = 'flex';
                         document.getElementById('courtSettingsSplit').style.display = 'none';
@@ -1988,7 +2100,6 @@
                         autoModeContainer.style.display = 'flex';
                         let btnAuto = document.getElementById('btnAutoModeToggle');
                         if (currentAutoMode) {
-                            // ★V83: 表示テキストを誤解のない「(設定中)」という形に変更
                             btnAuto.innerHTML = `🤖 自動進行: ON <span style="font-size:0.9rem; font-weight:normal;">(${currentAutoPool}面設定中)</span>`;
                             btnAuto.style.background = '#10B981';
                             btnAuto.style.color = 'white';
